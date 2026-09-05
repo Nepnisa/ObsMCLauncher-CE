@@ -1,9 +1,12 @@
-name: Build ObsMCLauncher
+name: Build and Release
 
 on:
   push:
-    branches: [ main, master ]
-  workflow_dispatch:
+    tags:
+      - 'v*'  # 推送 v1.0.0、v1.0.1 等标签时触发
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -27,24 +30,45 @@ jobs:
             rid: osx-arm64
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: 8.0.x
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
 
-    - name: Restore
-      run: dotnet restore ObsMCLauncher.Desktop/ObsMCLauncher.Desktop.csproj
+      - name: Restore
+        run: dotnet restore ObsMCLauncher.Desktop/ObsMCLauncher.Desktop.csproj
 
-    - name: Build
-      run: dotnet build ObsMCLauncher.Desktop/ObsMCLauncher.Desktop.csproj -c Release --no-restore
+      - name: Build
+        run: dotnet build ObsMCLauncher.Desktop/ObsMCLauncher.Desktop.csproj -c Release --no-restore
 
-    - name: Publish
-      run: dotnet publish ObsMCLauncher.Desktop/ObsMCLauncher.Desktop.csproj -c Release -r ${{ matrix.rid }} --self-contained true -p:PublishSingleFile=true -o ./publish
+      - name: Publish
+        run: dotnet publish ObsMCLauncher.Desktop/ObsMCLauncher.Desktop.csproj -c Release -r ${{ matrix.rid }} --self-contained true -p:PublishSingleFile=true -o ./publish
 
-    - name: Upload
-      uses: actions/upload-artifact@v4
-      with:
-        name: ${{ matrix.rid == 'win-x64' && 'ObsMCLauncher-CE-Windows-x64' || matrix.rid == 'win-x86' && 'ObsMCLauncher-CE-Windows-x86' || matrix.rid == 'win-arm64' && 'ObsMCLauncher-CE-Windows-ARM64' || matrix.rid == 'linux-x64' && 'ObsMCLauncher-CE-Linux-x64' || matrix.rid == 'linux-arm64' && 'ObsMCLauncher-CE-Linux-ARM64' || matrix.rid == 'osx-x64' && 'ObsMCLauncher-CE-macOS-x64' || matrix.rid == 'osx-arm64' && 'ObsMCLauncher-CE-macOS-ARM64' }}
-        path: ./publish
+      - name: Rename and zip
+        shell: bash
+        run: |
+          VERSION=${{ github.ref_name }}
+          RID=${{ matrix.rid }}
+          case "$RID" in
+            win-x64)   PLATFORM="Windows"; ARCH="x64" ;;
+            win-x86)   PLATFORM="Windows"; ARCH="x86" ;;
+            win-arm64) PLATFORM="Windows"; ARCH="ARM64" ;;
+            linux-x64) PLATFORM="Linux";   ARCH="x64" ;;
+            linux-arm64) PLATFORM="Linux"; ARCH="ARM64" ;;
+            osx-x64)   PLATFORM="macOS";   ARCH="x64" ;;
+            osx-arm64) PLATFORM="macOS";   ARCH="ARM64" ;;
+          esac
+          ZIP_NAME="ObsMCLauncher-CE-${PLATFORM}-${VERSION}-${ARCH}.zip"
+          cd ./publish
+          zip -r "../${ZIP_NAME}" ./*
+          echo "ZIP_NAME=${ZIP_NAME}" >> $GITHUB_ENV
+
+      - name: Upload to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ./${{ env.ZIP_NAME }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
