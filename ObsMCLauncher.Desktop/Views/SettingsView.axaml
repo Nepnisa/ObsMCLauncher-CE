@@ -1,0 +1,54 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ObsMCLauncher.Desktop.ViewModels"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
+             x:Class="ObsMCLauncher.Desktop.Views.SettingsView"
+             x:DataType="vm:SettingsViewModel">
+
+  <ui:NavigationView x:Name="SettingsNav"
+                     PaneTitle="设置"
+                     PaneDisplayMode="Left"
+                     OpenPaneLength="200"
+                     IsBackButtonVisible="False"
+                     IsPaneToggleButtonVisible="False"
+                     IsSettingsVisible="False"
+                     CompactModeThresholdWidth="0"
+                     ExpandedModeThresholdWidth="0">
+
+    <ui:NavigationView.MenuItems>
+      <ui:NavigationViewItem Content="主页" Tag="Home">
+        <ui:NavigationViewItem.IconSource>
+          <ui:SymbolIconSource Symbol="Home"/>
+        </ui:NavigationViewItem.IconSource>
+      </ui:NavigationViewItem>
+
+      <ui:NavigationViewItem Content="通用" Tag="General">
+        <ui:NavigationViewItem.IconSource>
+          <ui:SymbolIconSource Symbol="Settings"/>
+        </ui:NavigationViewItem.IconSource>
+      </ui:NavigationViewItem>
+
+      <ui:NavigationViewItem Content="外观" Tag="Appearance">
+        <ui:NavigationViewItem.IconSource>
+          <ui:SymbolIconSource Symbol="ColorBackground"/>
+        </ui:NavigationViewItem.IconSource>
+      </ui:NavigationViewItem>
+
+      <ui:NavigationViewItem Content="游戏" Tag="Game">
+        <ui:NavigationViewItem.IconSource>
+          <ui:SymbolIconSource Symbol="Games"/>
+        </ui:NavigationViewItem.IconSource>
+      </ui:NavigationViewItem>
+
+      <ui:NavigationViewItem Content="下载" Tag="Download">
+        <ui:NavigationViewItem.IconSource>
+          <ui:SymbolIconSource Symbol="Download"/>
+        </ui:NavigationViewItem.IconSource>
+      </ui:NavigationViewItem>
+    </ui:NavigationView.MenuItems>
+
+    <ui:Frame x:Name="SettingsFrame" IsNavigationStackEnabled="True"/>
+
+  </ui:NavigationView>
+
+</UserControl>

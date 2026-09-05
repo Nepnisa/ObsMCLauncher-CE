@@ -1,0 +1,76 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ObsMCLauncher.Desktop.ViewModels"
+             x:Class="ObsMCLauncher.Desktop.Views.PluginTabView"
+             x:DataType="vm:PluginTabViewModel">
+
+  <Grid>
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="24">
+      <StackPanel Spacing="24" MaxWidth="800">
+
+        <!-- 插件标题区域 -->
+        <Border Background="{DynamicResource SurfaceElevatedBrush}"
+                CornerRadius="12" Padding="24">
+          <StackPanel Spacing="16">
+            <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+              <TextBlock Text="🔧" FontSize="32"/>
+              <TextBlock Text="{Binding Title}" FontSize="24" FontWeight="SemiBold"/>
+            </StackPanel>
+
+            <TextBlock Text="{Binding ContentText}"
+                       FontSize="14" Foreground="{DynamicResource TextSecondaryBrush}"
+                       TextWrapping="Wrap" LineHeight="22"/>
+          </StackPanel>
+        </Border>
+
+        <!-- 插件信息卡片 -->
+        <Border Background="{DynamicResource SurfaceElevatedBrush}"
+                CornerRadius="12" Padding="24">
+          <StackPanel Spacing="16">
+            <TextBlock Text="插件信息" FontSize="18" FontWeight="Medium"/>
+
+            <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto" RowSpacing="12" ColumnSpacing="16">
+              <TextBlock Grid.Row="0" Grid.Column="0" Text="插件ID:" FontSize="14" Foreground="{DynamicResource TextTertiaryBrush}"/>
+              <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Title}" FontSize="14" FontWeight="Medium"/>
+
+              <TextBlock Grid.Row="1" Grid.Column="0" Text="标签页ID:" FontSize="14" Foreground="{DynamicResource TextTertiaryBrush}"/>
+              <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding ContentText}" FontSize="14" FontWeight="Medium"/>
+
+              <TextBlock Grid.Row="2" Grid.Column="0" Text="状态:" FontSize="14" Foreground="{DynamicResource TextTertiaryBrush}"/>
+              <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                <Border Background="#10B981" CornerRadius="4" Padding="6,2">
+                  <TextBlock Text="已加载" FontSize="12" FontWeight="SemiBold" Foreground="White"/>
+                </Border>
+                <TextBlock Text="正常运行中" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+              </StackPanel>
+            </Grid>
+          </StackPanel>
+        </Border>
+
+        <!-- Hello World 区域 -->
+        <Border Background="{DynamicResource SurfaceElevatedBrush}"
+                CornerRadius="12" Padding="24">
+          <StackPanel Spacing="16">
+            <TextBlock Text="Hello World!" FontSize="24" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryBrush}"/>
+
+            <TextBlock Text="这是一个示例插件页面，来自 ExamplePlugin 插件。"
+                       FontSize="14" Foreground="{DynamicResource TextSecondaryBrush}"
+                       TextWrapping="Wrap" LineHeight="22"/>
+
+            <TextBlock Text="插件系统允许开发者扩展 ObsMCLauncher 的功能，添加新的标签页、主页卡片和功能。"
+                       FontSize="14" Foreground="{DynamicResource TextSecondaryBrush}"
+                       TextWrapping="Wrap" LineHeight="22"/>
+
+            <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="8" Padding="16" Margin="0,8,0,0">
+              <TextBlock Text="🎉 恭喜！插件系统工作正常！"
+                         FontSize="16" FontWeight="Medium"
+                         HorizontalAlignment="Center"/>
+            </Border>
+          </StackPanel>
+        </Border>
+
+      </StackPanel>
+    </ScrollViewer>
+  </Grid>
+
+</UserControl>

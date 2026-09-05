@@ -1,0 +1,54 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ObsMCLauncher.Desktop.ViewModels"
+             xmlns:views="using:ObsMCLauncher.Desktop.Views"
+             x:Class="ObsMCLauncher.Desktop.Views.HomeView"
+             x:DataType="vm:HomeViewModel">
+
+  <!-- 组件渲染模板定义在 App.axaml（Application.DataTemplates），与设置页模拟主页共用 -->
+
+  <!-- 布局渲染：卡片区独立滚动 + 固定操作区；行内组件一排到底，超宽时整行等比缩小不换行 -->
+  <Grid RowDefinitions="*,Auto">
+    <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
+      <StackPanel>
+        <!-- 总游玩时长显示 -->
+        <TextBlock Text="{Binding TotalPlayTimeDisplay}"
+                   FontSize="14"
+                   Foreground="{DynamicResource TextSecondaryBrush}"
+                   Margin="24,16,24,8"
+                   HorizontalAlignment="Left"/>
+        <ItemsControl ItemsSource="{Binding HomeRows}" Margin="24,0,24,16">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:HomeRowViewModel">
+              <Panel Margin="0,0,0,16">
+                <!-- 常规行：一排到底，放不下时按宽度等比缩小 -->
+                <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left"
+                         IsVisible="{Binding !IsSingleFill}">
+                  <ItemsControl ItemsSource="{Binding Components}">
+                    <ItemsControl.ItemsPanel>
+                      <ItemsPanelTemplate>
+                        <StackPanel Orientation="Horizontal"/>
+                      </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                  </ItemsControl>
+                </Viewbox>
+                <!-- 单个 Fill 组件独占整行 -->
+                <ItemsControl ItemsSource="{Binding Components}" IsVisible="{Binding IsSingleFill}">
+                  <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                      <Grid/>
+                    </ItemsPanelTemplate>
+                  </ItemsControl.ItemsPanel>
+                </ItemsControl>
+              </Panel>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+    </ScrollViewer>
+
+    <views:HomeActionBar Grid.Row="1"/>
+
+    <views:InstanceView Grid.RowSpan="2" DataContext="{Binding InstanceViewModel}"/>
+  </Grid>
+</UserControl>

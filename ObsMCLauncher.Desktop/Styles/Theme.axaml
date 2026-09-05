@@ -1,0 +1,269 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:sys="clr-namespace:System;assembly=System.Runtime"
+        xmlns:a="using:Avalonia.Media">
+
+  <Styles.Resources>
+
+    <!-- ============================================================
+         三级表面色阶（新规范）
+         通过固定明度差表达层级，不依赖透明度
+         LayerFillColorDefault  : 窗口最底层背景
+         LayerFillColorAlt      : 标题栏 / 导航栏 / 内容区
+         LayerFillColorPrimary  : 卡片 / 浮层面板
+         LayerFillColorSecondary: 悬浮态 / 二级卡片
+         ============================================================ -->
+    <SolidColorBrush x:Key="LayerFillColorDefaultBrush" Color="#0B0D10"/>
+    <SolidColorBrush x:Key="LayerFillColorAltBrush" Color="#141619"/>
+    <SolidColorBrush x:Key="LayerFillColorPrimaryBrush" Color="#1C1F26"/>
+    <SolidColorBrush x:Key="LayerFillColorSecondaryBrush" Color="#252830"/>
+
+    <!-- 全局字体：默认内置 HarmonyOS Sans SC，运行时由 SettingsViewModel 按配置覆盖 -->
+    <FontFamily x:Key="GlobalFontFamily">avares://ObsMCLauncher.Desktop/Assets/Fonts/#HarmonyOS Sans SC, HarmonyOS Sans SC, Microsoft YaHei UI, PingFang SC, Noto Sans SC, Segoe UI, sans-serif</FontFamily>
+    <FontFamily x:Key="ContentControlThemeFontFamily">avares://ObsMCLauncher.Desktop/Assets/Fonts/#HarmonyOS Sans SC, HarmonyOS Sans SC, Microsoft YaHei UI, PingFang SC, Noto Sans SC, Segoe UI, sans-serif</FontFamily>
+    <FontWeight x:Key="GlobalFontWeight">Normal</FontWeight>
+
+    <!-- 壁纸资源默认值：运行时由 SettingsViewModel 按配置覆盖 -->
+    <sys:Boolean x:Key="IsMainWallpaperVisible">False</sys:Boolean>
+    <!-- FA 左展开态导航栏实际读取的背景键，默认给不透明底色防止透出窗口底 -->
+    <SolidColorBrush x:Key="NavigationViewExpandedPaneBackground" Color="#141619"/>
+
+    <!-- ===== 主色：单一 AccentBrush，旧别名全部指向同一色值 ===== -->
+    <Color x:Key="AccentColor">#10B981</Color>
+    <SolidColorBrush x:Key="AccentBrush" Color="#10B981"/>
+    <SolidColorBrush x:Key="AccentSecondaryBrush" Color="#34D399"/>
+
+    <!-- 主页欢迎卡片渐变（运行时由设置按强调色覆盖，此处为默认绿） -->
+    <Color x:Key="HomeWelcomeGradientStart">#059669</Color>
+    <Color x:Key="HomeWelcomeGradientEnd">#10B981</Color>
+
+    <!-- 旧主色别名，全部收敛到 #10B981 / #34D399，保证向后兼容 -->
+    <SolidColorBrush x:Key="PrimaryBrush" Color="#10B981"/>
+    <SolidColorBrush x:Key="PrimaryDarkBrush" Color="#10B981"/>
+    <SolidColorBrush x:Key="PrimaryLightBrush" Color="#34D399"/>
+    <SolidColorBrush x:Key="BrandBrush" Color="#10B981"/>
+    <SolidColorBrush x:Key="SecondaryBrush" Color="#34D399"/>
+    <SolidColorBrush x:Key="Primary600Brush" Color="#10B981"/>
+    <SolidColorBrush x:Key="Primary500Brush" Color="#10B981"/>
+    <SolidColorBrush x:Key="Primary400Brush" Color="#34D399"/>
+    <SolidColorBrush x:Key="Primary300Brush" Color="#34D399"/>
+    <SolidColorBrush x:Key="Primary100Brush" Color="#10B981"/>
+    <SolidColorBrush x:Key="Primary50Brush"  Color="#10B981"/>
+
+    <!-- ===== 深色模式中性色（与三级表面对齐） ===== -->
+    <SolidColorBrush x:Key="BackgroundBrush" Color="#0B0D10"/>
+    <SolidColorBrush x:Key="SurfaceBrush" Color="#141619"/>
+    <SolidColorBrush x:Key="SurfaceElevatedBrush" Color="#1C1F26"/>
+    <SolidColorBrush x:Key="SurfaceHoverBrush" Color="#252830"/>
+    <SolidColorBrush x:Key="NavHoverBrush" Color="#252830"/>
+
+    <SolidColorBrush x:Key="TextBrush" Color="#F1F5F9"/>
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="#94A3B8"/>
+    <SolidColorBrush x:Key="TextTertiaryBrush" Color="#64748B"/>
+
+    <SolidColorBrush x:Key="BorderBrush" Color="#2A2E37"/>
+    <SolidColorBrush x:Key="DividerBrush" Color="#1E2128"/>
+
+    <SolidColorBrush x:Key="InputBackgroundBrush" Color="#141619"/>
+    <SolidColorBrush x:Key="InputForegroundBrush" Color="#F1F5F9"/>
+
+    <SolidColorBrush x:Key="GlassmorphismBackgroundBrush" Color="#141619" Opacity="0.88"/>
+    <SolidColorBrush x:Key="GlassmorphismBorderBrush" Color="#FFFFFF" Opacity="0.08"/>
+
+    <!-- ===== 浅色模式中性色（默认隐藏，由代码动态切换） ===== -->
+    <SolidColorBrush x:Key="LightBackgroundBrush" Color="#F8FAFC"/>
+    <SolidColorBrush x:Key="LightSurfaceBrush" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="LightSurfaceElevatedBrush" Color="#F1F5F9"/>
+    <SolidColorBrush x:Key="LightSurfaceHoverBrush" Color="#E8ECF1"/>
+    <SolidColorBrush x:Key="LightNavHoverBrush" Color="#E8ECF1"/>
+
+    <SolidColorBrush x:Key="LightTextBrush" Color="#0F172A"/>
+    <SolidColorBrush x:Key="LightTextSecondaryBrush" Color="#475569"/>
+    <SolidColorBrush x:Key="LightTextTertiaryBrush" Color="#94A3B8"/>
+
+    <SolidColorBrush x:Key="LightBorderBrush" Color="#E2E8F0"/>
+    <SolidColorBrush x:Key="LightDividerBrush" Color="#F1F5F9"/>
+
+    <SolidColorBrush x:Key="LightInputBackgroundBrush" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="LightInputForegroundBrush" Color="#0F172A"/>
+
+    <SolidColorBrush x:Key="LightGlassmorphismBackgroundBrush" Color="#FFFFFF" Opacity="0.92"/>
+    <SolidColorBrush x:Key="LightGlassmorphismBorderBrush" Color="#000000" Opacity="0.06"/>
+
+    <SolidColorBrush x:Key="LightSystemControlBackgroundBaseHighBrush" Color="#F8FAFC"/>
+    <SolidColorBrush x:Key="LightSystemControlBackgroundAltHighBrush" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="LightSystemControlBackgroundBaseLowBrush" Color="#E8ECF1"/>
+    <SolidColorBrush x:Key="LightSystemControlBackgroundBaseMediumBrush" Color="#F1F5F9"/>
+    <SolidColorBrush x:Key="LightSystemControlForegroundBaseHighBrush" Color="#0F172A"/>
+    <SolidColorBrush x:Key="LightSystemControlForegroundBaseLowBrush" Color="#E2E8F0"/>
+
+    <!-- ===== 功能色 ===== -->
+    <SolidColorBrush x:Key="DangerBrush" Color="#EF4444"/>
+    <SolidColorBrush x:Key="DangerDarkBrush" Color="#DC2626"/>
+    <SolidColorBrush x:Key="DangerSoftBrush" Color="#EF4444" Opacity="0.18"/>
+    <SolidColorBrush x:Key="WarningBrush" Color="#F59E0B"/>
+    <SolidColorBrush x:Key="InfoBrush" Color="#3B82F6"/>
+    <SolidColorBrush x:Key="SuccessBrush" Color="#10B981"/>
+
+    <!-- ===== 系统色（深色模式默认值） ===== -->
+    <SolidColorBrush x:Key="SystemControlBackgroundBaseHighBrush" Color="#0B0D10"/>
+    <SolidColorBrush x:Key="SystemControlBackgroundAltHighBrush" Color="#141619"/>
+    <SolidColorBrush x:Key="SystemControlBackgroundBaseLowBrush" Color="#252830"/>
+    <SolidColorBrush x:Key="SystemControlBackgroundBaseMediumBrush" Color="#1C1F26"/>
+
+    <SolidColorBrush x:Key="SystemControlForegroundBaseHighBrush" Color="#F1F5F9"/>
+    <SolidColorBrush x:Key="SystemControlForegroundBaseLowBrush" Color="#2A2E37"/>
+
+    <Color x:Key="SystemAccentColor">#10B981</Color>
+
+    <Color x:Key="SystemAltHighColor">#0B0D10</Color>
+    <Color x:Key="SystemAltLowColor">#0B0D10</Color>
+    <Color x:Key="SystemBaseHighColor">#F1F5F9</Color>
+    <Color x:Key="SystemBaseMediumColor">#64748B</Color>
+
+    <!-- ===== 圆角 ===== -->
+    <CornerRadius x:Key="ControlCornerRadius">8</CornerRadius>
+    <CornerRadius x:Key="OverlayCornerRadius">12</CornerRadius>
+    <CornerRadius x:Key="CardCornerRadius">12</CornerRadius>
+
+    <!-- ===== 布局：密度/边距（由设置页按密度覆盖） ===== -->
+    <Thickness x:Key="ContentMargin">20,20,20,20</Thickness>
+    <x:Double x:Key="InnerSpacing">12</x:Double>
+
+    <!-- ===== 动画：时长与开关（由设置页按级别覆盖） ===== -->
+    <sys:TimeSpan x:Key="DefaultTransitionDuration">00:00:00.2500000</sys:TimeSpan>
+    <x:Boolean x:Key="EnabledAnimations">true</x:Boolean>
+
+    <!-- ===== 输入框聚焦光晕色 ===== -->
+    <SolidColorBrush x:Key="InputFocusGlowBrush" Color="#10B981" Opacity="0.15"/>
+
+    <!-- ===== 选中项浅底色 ===== -->
+    <SolidColorBrush x:Key="NavItemSelectedBackgroundBrush" Color="#10B981" Opacity="0.08"/>
+    <SolidColorBrush x:Key="LightNavItemSelectedBackgroundBrush" Color="#10B981" Opacity="0.06"/>
+
+    <!-- 阴影资源 -->
+    <BoxShadows x:Key="CardShadow">0 4 12 0 #20000000</BoxShadows>
+    <BoxShadows x:Key="ChromeShadow">0 1 4 0 #18000000</BoxShadows>
+    <BoxShadows x:Key="NavShadow">2 0 8 0 #12000000</BoxShadows>
+    <BoxShadows x:Key="WindowShadow">0 0 0 0 transparent</BoxShadows>
+
+    <!-- 卡片资源 -->
+    <SolidColorBrush x:Key="CardBackgroundBrush" Color="#1C1F26"/>
+    <SolidColorBrush x:Key="CardBorderBrush" Color="#2A2E37"/>
+
+    <!-- 窗口背景资源 -->
+    <SolidColorBrush x:Key="WindowBackgroundBrush" Color="#0B0D10"/>
+
+    <!-- 导航栏背景资源，默认与窗口背景一致 -->
+    <SolidColorBrush x:Key="NavBackgroundBrush" Color="#141619"/>
+    <SolidColorBrush x:Key="NavBorderBrush" Color="#1E2128"/>
+    <SolidColorBrush x:Key="TitleBarBackgroundBrush" Color="#141619"/>
+    <SolidColorBrush x:Key="TitleBarBorderBrush" Color="#1E2128"/>
+
+    <!-- ===== FluentAvalonia 控件资源（NavigationView / SettingsExpander 等），深色默认值 ===== -->
+    <SolidColorBrush x:Key="NavigationViewDefaultPaneBackground" Color="#141619"/>
+    <SolidColorBrush x:Key="NavigationViewContentBackground" Color="Transparent"/>
+    <SolidColorBrush x:Key="CardStrokeColorDefaultBrush" Color="#2A2E37"/>
+    <SolidColorBrush x:Key="DividerStrokeColorDefaultBrush" Color="#1E2128"/>
+    <SolidColorBrush x:Key="TextFillColorPrimaryBrush" Color="#F1F5F9"/>
+    <SolidColorBrush x:Key="TextFillColorSecondaryBrush" Color="#94A3B8"/>
+    <SolidColorBrush x:Key="TextFillColorTertiaryBrush" Color="#64748B"/>
+    <SolidColorBrush x:Key="SubtleFillColorSecondaryBrush" Color="#252830"/>
+    <SolidColorBrush x:Key="SubtleFillColorTertiaryBrush" Color="#1C1F26"/>
+    <SolidColorBrush x:Key="ControlFillColorDefaultBrush" Color="#141619"/>
+
+    <!-- ===== FluentAvalonia TabView（版本实例页 tab 栏）主题资源 =====
+         tab 条与顶部标题栏同色（SurfaceBrush），选中 tab 与内容区共用页面底色（BackgroundBrush），
+         选中态文字用主题绿 + 加粗，与全局导航激活样式一致。
+         浅色模式由 SettingsViewModel.ApplyTabViewTheme 动态切换。 -->
+    <SolidColorBrush x:Key="TabViewBackground" Color="#141619"/>
+    <SolidColorBrush x:Key="TabViewBorderBrush" Color="#1E2128"/>
+    <SolidColorBrush x:Key="TabViewItemHeaderBackground" Color="#00FFFFFF"/>
+    <SolidColorBrush x:Key="TabViewItemHeaderBackgroundSelected" Color="#0B0D10"/>
+    <SolidColorBrush x:Key="TabViewItemHeaderBackgroundPointerOver" Color="#10B981" Opacity="0.08"/>
+    <SolidColorBrush x:Key="TabViewItemHeaderBackgroundPressed" Color="#1C1F26"/>
+    <SolidColorBrush x:Key="TabViewItemHeaderForeground" Color="#94A3B8"/>
+    <SolidColorBrush x:Key="TabViewItemHeaderForegroundSelected" Color="#10B981"/>
+    <SolidColorBrush x:Key="TabViewItemHeaderForegroundPointerOver" Color="#F1F5F9"/>
+    <SolidColorBrush x:Key="TabViewItemHeaderForegroundPressed" Color="#64748B"/>
+    <SolidColorBrush x:Key="TabViewItemIconForeground" Color="#94A3B8"/>
+    <SolidColorBrush x:Key="TabViewItemIconForegroundSelected" Color="#10B981"/>
+    <SolidColorBrush x:Key="TabViewItemIconForegroundPointerOver" Color="#F1F5F9"/>
+    <SolidColorBrush x:Key="TabViewItemIconForegroundPressed" Color="#64748B"/>
+
+    <!-- ===== InfoBar 信息级通知背景 =====
+         Fluent 默认的 Informational 背景为 50% 透明度（#80FFFFFF/#80F6F6F6），
+         通知悬浮在内容上时难以阅读，改为不透明表面色（随深浅色切换）。 -->
+    <SolidColorBrush x:Key="InfoBarInformationalSeverityBackgroundBrush" Color="#1C1F26"/>
+
+  </Styles.Resources>
+
+  <!-- 字体从 Window 级继承，TextBlock 不应锁死 Normal，否则自定义字重失效 -->
+  <Style Selector="Window">
+    <Setter Property="FontFamily" Value="{DynamicResource GlobalFontFamily}" />
+    <Setter Property="FontWeight" Value="{DynamicResource GlobalFontWeight}" />
+  </Style>
+
+  <Style Selector="TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+    <Setter Property="FontWeight" Value="{DynamicResource GlobalFontWeight}" />
+  </Style>
+
+  <Style Selector="ScrollViewer">
+    <Setter Property="Background" Value="Transparent"/>
+  </Style>
+
+  <Style Selector="ScrollBar:vertical /template/ Border#RootBorder">
+    <Setter Property="Width" Value="6"/>
+    <Setter Property="Background" Value="Transparent"/>
+  </Style>
+
+  <Style Selector="ScrollBar:horizontal /template/ Border#RootBorder">
+    <Setter Property="Height" Value="6"/>
+    <Setter Property="Background" Value="Transparent"/>
+  </Style>
+
+  <Style Selector="ScrollBar:vertical /template/ RepeatButton#VerticalSmallDecrease">
+    <Setter Property="Height" Value="0"/>
+  </Style>
+
+  <Style Selector="ScrollBar:vertical /template/ RepeatButton#VerticalSmallIncrease">
+    <Setter Property="Height" Value="0"/>
+  </Style>
+
+  <Style Selector="ScrollBar:horizontal /template/ RepeatButton#HorizontalSmallDecrease">
+    <Setter Property="Width" Value="0"/>
+  </Style>
+
+  <Style Selector="ScrollBar:horizontal /template/ RepeatButton#HorizontalSmallIncrease">
+    <Setter Property="Width" Value="0"/>
+  </Style>
+
+  <Style Selector="ScrollBar /template/ Thumb">
+    <Setter Property="Background" Value="#50FFFFFF"/>
+    <Setter Property="CornerRadius" Value="3"/>
+    <Setter Property="MinHeight" Value="30"/>
+  </Style>
+
+  <Style Selector="ScrollBar /template/ Thumb:pointerover">
+    <Setter Property="Background" Value="#80FFFFFF"/>
+  </Style>
+
+  <Style Selector="ProgressBar">
+    <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource SurfaceElevatedBrush}"/>
+    <Setter Property="CornerRadius" Value="3"/>
+    <Setter Property="Height" Value="6"/>
+  </Style>
+
+  <Style Selector="ProgressBar /template/ Border#ProgressBarTrack">
+    <Setter Property="CornerRadius" Value="3"/>
+  </Style>
+
+  <Style Selector="Separator">
+    <Setter Property="Background" Value="{DynamicResource DividerBrush}"/>
+    <Setter Property="Height" Value="1"/>
+    <Setter Property="Margin" Value="0,4"/>
+  </Style>
+
+</Styles>

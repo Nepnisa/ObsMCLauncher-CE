@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="ObsMCLauncher.Core.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- MOD 翻译数据作为嵌入资源，保证打包/生产环境可用 -->
+    <EmbeddedResource Include="Assets\mod_translations.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Markdig" Version="0.38.0" />
+    <PackageReference Include="Avalonia" Version="11.3.11" />
+    <PackageReference Include="Velopack" Version="1.1.1" />
+    <!-- Windows DPAPI（ProtectedData）：敏感令牌静态加密；非 Windows 平台调用会抛 PlatformNotSupportedException，由运行时分支保护 -->
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
+  </ItemGroup>
+
+</Project>

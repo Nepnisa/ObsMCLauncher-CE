@@ -1,0 +1,630 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:ObsMCLauncher.Desktop.ViewModels"
+        xmlns:views="using:ObsMCLauncher.Desktop.Views"
+        xmlns:ui="using:FluentAvalonia.UI.Controls"
+        xmlns:converters="using:ObsMCLauncher.Desktop.Converters"
+        xmlns:notif="using:ObsMCLauncher.Desktop.ViewModels.Notifications"
+        xmlns:download="using:ObsMCLauncher.Core.Services.Download"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="700"
+        x:Class="ObsMCLauncher.Desktop.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Icon="/Assets/app_icon.ico"
+        Title="黑曜石MC启动器"
+        Width="1100"
+        Height="700"
+        MinWidth="900"
+        MinHeight="600"
+        WindowStartupLocation="CenterScreen">
+
+    <Window.Resources>
+        <x:Double x:Key="PaneToggleButtonHeight">44</x:Double>
+    </Window.Resources>
+
+    <Design.DataContext>
+        <vm:MainWindowViewModel/>
+    </Design.DataContext>
+
+    <Window.Styles>
+        <!-- FA 导航项模板默认把字重锁成 Normal，需覆盖才跟随自定义字重 -->
+        <Style Selector="ui|NavigationViewItem">
+            <Setter Property="FontWeight" Value="{DynamicResource GlobalFontWeight}" />
+        </Style>
+
+        <!-- 折叠按钮：无文字、无 PaneTitle，图标与点击区域一致 -->
+        <Style Selector="ui|NavigationView /template/ Button#TogglePaneButton">
+            <Setter Property="MinWidth" Value="48" />
+            <Setter Property="Width" Value="48" />
+            <Setter Property="Height" Value="40" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Margin" Value="4,6,4,2" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border x:Name="LayoutRoot"
+                            Background="Transparent"
+                            CornerRadius="8">
+                        <Path Data="M3 6L21 6M3 12L21 12M3 18L21 18"
+                              Width="18" Height="14"
+                              Stretch="Uniform"
+                              Stroke="{DynamicResource TextBrush}"
+                              StrokeThickness="2"
+                              HorizontalAlignment="Center"
+                              VerticalAlignment="Center"/>
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+        </Style>
+
+        <Style Selector="ui|NavigationView /template/ Button#TogglePaneButton:pointerover /template/ Border#LayoutRoot">
+            <Setter Property="Background" Value="{DynamicResource SurfaceHoverBrush}" />
+        </Style>
+
+        <Style Selector="ui|NavigationView /template/ Button#TogglePaneButton:pressed /template/ Border#LayoutRoot">
+            <Setter Property="Background" Value="{DynamicResource SurfaceElevatedBrush}" />
+        </Style>
+
+        <Style Selector="Border.dialog-card">
+            <Setter Property="CornerRadius" Value="{DynamicResource OverlayCornerRadius}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SystemControlForegroundBaseLowBrush}" />
+            <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundAltHighBrush}" />
+            <Setter Property="Padding" Value="18" />
+            <Setter Property="Width" Value="520" />
+            <Setter Property="RenderTransform" Value="scale(0.9)" />
+            <Setter Property="Opacity" Value="0" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="{DynamicResource DefaultTransitionDuration}" Easing="CircularEaseOut" />
+                    <TransformOperationsTransition Property="RenderTransform" Duration="{DynamicResource DefaultTransitionDuration}" Easing="CircularEaseOut" />
+                </Transitions>
+            </Setter>
+        </Style>
+
+        <Style Selector="Border.dialog-card:visible">
+            <Setter Property="RenderTransform" Value="scale(1)" />
+            <Setter Property="Opacity" Value="1" />
+        </Style>
+
+        <Style Selector="Border.authurl-card">
+            <Setter Property="CornerRadius" Value="{DynamicResource OverlayCornerRadius}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SystemControlForegroundBaseLowBrush}" />
+            <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundAltHighBrush}" />
+            <Setter Property="Padding" Value="18" />
+            <Setter Property="Width" Value="520" />
+            <Setter Property="RenderTransform" Value="scale(0.9)" />
+            <Setter Property="Opacity" Value="0" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="{DynamicResource DefaultTransitionDuration}" Easing="CircularEaseOut" />
+                    <TransformOperationsTransition Property="RenderTransform" Duration="{DynamicResource DefaultTransitionDuration}" Easing="CircularEaseOut" />
+                </Transitions>
+            </Setter>
+        </Style>
+
+        <Style Selector="Border.authurl-card:visible">
+            <Setter Property="RenderTransform" Value="scale(1)" />
+            <Setter Property="Opacity" Value="1" />
+        </Style>
+
+        <Style Selector="Border.update-dialog">
+            <Setter Property="RenderTransform" Value="scale(0.9)" />
+            <Setter Property="Opacity" Value="0" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="{DynamicResource DefaultTransitionDuration}" Easing="CircularEaseOut" />
+                    <TransformOperationsTransition Property="RenderTransform" Duration="{DynamicResource DefaultTransitionDuration}" Easing="CircularEaseOut" />
+                </Transitions>
+            </Setter>
+        </Style>
+
+        <Style Selector="Border.update-dialog:visible">
+            <Setter Property="RenderTransform" Value="scale(1)" />
+            <Setter Property="Opacity" Value="1" />
+        </Style>
+
+        <Style Selector="Border.download-panel">
+            <Setter Property="Transitions">
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="{DynamicResource DefaultTransitionDuration}" Easing="CircularEaseOut" />
+                    <TransformOperationsTransition Property="RenderTransform" Duration="{DynamicResource DefaultTransitionDuration}" Easing="CircularEaseOut" />
+                </Transitions>
+            </Setter>
+        </Style>
+
+    </Window.Styles>
+
+    <Border x:Name="WindowRoot"
+            Background="{DynamicResource WindowBackgroundBrush}"
+            BoxShadow="{DynamicResource WindowShadow}"
+            CornerRadius="0"
+            ClipToBounds="True">
+    <Grid x:Name="RootGrid" RowDefinitions="*">
+
+        <!-- 主内容区壁纸底层（仅在启用壁纸时显示） -->
+        <Border Grid.Row="0" IsVisible="{DynamicResource IsMainWallpaperVisible}">
+            <Border.Background>
+                <DynamicResourceExtension ResourceKey="MainWallpaperBrush"/>
+            </Border.Background>
+        </Border>
+
+        <ui:NavigationView x:Name="MainNav"
+                           Grid.Row="0"
+                           PaneDisplayMode="Auto"
+                           CompactModeThresholdWidth="950"
+                           ExpandedModeThresholdWidth="950"
+                           OpenPaneLength="200"
+                           CompactPaneLength="48"
+                           IsBackButtonVisible="False"
+                           IsPaneToggleButtonVisible="True"
+                           IsSettingsVisible="False"
+                           IsPaneOpen="{Binding IsPaneOpen, Mode=TwoWay}"
+                           MenuItemsSource="{Binding NavItems}"
+                           FooterMenuItemsSource="{Binding BottomNavItems}">
+
+            <ui:NavigationView.MenuItemTemplate>
+                <DataTemplate x:DataType="vm:NavItemViewModel">
+                    <ui:NavigationViewItem Content="{Binding Title}"
+                                           ToolTip.Tip="{Binding Title}">
+                        <ui:NavigationViewItem.IconSource>
+                            <ui:PathIconSource Data="{Binding IconPath, Converter={x:Static converters:SvgToGeometryConverter.Instance}}"/>
+                        </ui:NavigationViewItem.IconSource>
+                    </ui:NavigationViewItem>
+                </DataTemplate>
+            </ui:NavigationView.MenuItemTemplate>
+
+            <Border Background="{DynamicResource NavBackgroundBrush}"
+                    BorderBrush="{DynamicResource NavBorderBrush}"
+                    BorderThickness="1,0,0,0">
+                <ui:Frame x:Name="MainFrame"
+                          IsNavigationStackEnabled="False"
+                          Margin="{DynamicResource ContentMargin}"
+                          Background="Transparent"/>
+            </Border>
+        </ui:NavigationView>
+
+        <Border Grid.Row="0" Grid.Column="0" Grid.RowSpan="1" Grid.ColumnSpan="1"
+                Background="#80000000"
+                IsVisible="{Binding Dialogs.IsAnyModalOpen}"
+                IsHitTestVisible="{Binding Dialogs.IsAnyModalOpen}">
+            <Border.Transitions>
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="{DynamicResource DefaultTransitionDuration}" Easing="CircularEaseOut" />
+                </Transitions>
+            </Border.Transitions>
+        </Border>
+
+        <Border x:Name="AuthUrlOverlay"
+                Grid.Row="0" Grid.Column="0" Grid.RowSpan="1" Grid.ColumnSpan="1"
+                Background="#80000000"
+                IsVisible="{Binding Dialogs.IsAuthUrlOpen}"
+                IsHitTestVisible="{Binding Dialogs.IsAuthUrlOpen}"
+                PointerPressed="AuthUrlOverlay_PointerPressed"/>
+
+        <Border Grid.Row="0" Grid.Column="0" Grid.RowSpan="1" Grid.ColumnSpan="1"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                IsVisible="{Binding Dialogs.IsAuthUrlOpen}"
+                IsHitTestVisible="True"
+                CornerRadius="{DynamicResource OverlayCornerRadius}"
+                BorderThickness="1"
+                BorderBrush="{DynamicResource BorderBrush}"
+                Background="{DynamicResource SurfaceElevatedBrush}"
+                Padding="24"
+                Width="480"
+                BoxShadow="0 8 32 0 #66000000"
+                x:CompileBindings="False">
+            <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto">
+                <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,16">
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10">
+                        <Border Width="40" Height="40" CornerRadius="8" Background="#1010B981" VerticalAlignment="Center">
+                            <Path Data="M12 1L3 5V11C3 16.5 6.8 21.7 12 23C17.2 21.7 21 16.5 21 11V5L12 1M12 11H19C18.5 15.5 15.7 19.6 12 20.9V11H5V6.3L12 3.2V11Z"
+                                  Width="20" Height="20" Stretch="Uniform" Fill="{DynamicResource PrimaryBrush}"
+                                  HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <TextBlock Text="{Binding Dialogs.AuthUrlCurrent.Title, FallbackValue='微软账户登录'}" FontSize="20" FontWeight="Bold" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <Button Grid.Column="1"
+                            Width="32" Height="32"
+                            Classes="ghost"
+                            Command="{Binding Dialogs.CloseAuthUrlCommand}"
+                            CommandParameter="{x:True}">
+                        <Path Data="M6 6L18 18M6 18L18 6" 
+                              Width="12" Height="12"
+                              Stretch="Uniform"
+                              Stroke="{DynamicResource TextSecondaryBrush}" StrokeThickness="2"/>
+                    </Button>
+                </Grid>
+
+                <TextBlock Grid.Row="1"
+                           Text="浏览器应已自动打开，如果没有，请手动复制下方链接并在浏览器中打开："
+                           FontSize="13"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           TextWrapping="Wrap"
+                           Margin="0,0,0,12" />
+
+                <Border Grid.Row="2"
+                        Background="{DynamicResource BackgroundBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="12"
+                        Margin="0,0,0,16">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="授权链接" FontSize="11" Foreground="{DynamicResource TextTertiaryBrush}" />
+                        <SelectableTextBlock Text="{Binding Dialogs.AuthUrlCurrent.Url, FallbackValue=''}"
+                                   FontFamily="Consolas"
+                                   FontSize="12"
+                                   Foreground="{DynamicResource TextBrush}"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+
+                <Button Grid.Row="3"
+                        Classes="accent"
+                        HorizontalAlignment="Stretch"
+                        Height="40"
+                        Command="{Binding Dialogs.CopyAuthUrlCommand}"
+                        Margin="0,0,0,12">
+                    <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+                        <Path Data="M16 1H4C2.9 1 2 1.9 2 3V17H4V3H16V1ZM19 5H8C6.9 5 6 5.9 6 7V21C6 22.1 6.9 23 8 23H19C20.1 23 21 22.1 21 21V7C21 5.9 20.1 5 19 5M19 21H8V7H19V21Z"
+                              Width="14" Height="14" Stretch="Uniform" Fill="White" VerticalAlignment="Center"/>
+                        <TextBlock Text="复制授权链接" FontSize="14" FontWeight="Medium" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+
+                <TextBlock Grid.Row="4"
+                           Text="完成授权后此对话框将自动关闭，也可点击右上角关闭按钮手动关闭"
+                           FontSize="11"
+                           Foreground="{DynamicResource TextTertiaryBrush}"
+                           HorizontalAlignment="Center" />
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="0" Grid.Column="0" Grid.RowSpan="1" Grid.ColumnSpan="1"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                IsVisible="{Binding Dialogs.IsUpdateDialogOpen}"
+                IsHitTestVisible="{Binding Dialogs.IsUpdateDialogOpen}"
+                CornerRadius="12"
+                BorderThickness="1"
+                BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
+                Background="{DynamicResource SystemControlBackgroundAltHighBrush}"
+                MaxWidth="600"
+                MaxHeight="700"
+                Padding="24"
+                Opacity="{Binding Dialogs.UpdateDialogCurrent.AnimationOpacity, FallbackValue=0}"
+                RenderTransformOrigin="0.5,0.5"
+                x:CompileBindings="False"
+                Classes="update-dialog">
+            <Border.RenderTransform>
+                <TransformGroup>
+                    <ScaleTransform ScaleX="{Binding Dialogs.UpdateDialogCurrent.AnimationScale, FallbackValue=0.5}" ScaleY="{Binding Dialogs.UpdateDialogCurrent.AnimationScale, FallbackValue=0.5}" />
+                    <TranslateTransform Y="{Binding Dialogs.UpdateDialogCurrent.AnimationOffsetY, FallbackValue=-40}" />
+                </TransformGroup>
+            </Border.RenderTransform>
+            <Grid RowDefinitions="Auto,*,Auto,Auto">
+                <TextBlock Grid.Row="0" Text="{Binding Dialogs.UpdateDialogCurrent.Title, FallbackValue=''}" FontSize="22" FontWeight="Bold" Margin="0,0,0,20" />
+
+                <ScrollViewer Grid.Row="1" MaxHeight="400" Margin="0,0,0,25">
+                    <TextBlock Text="{Binding Dialogs.UpdateDialogCurrent.MarkdownContent, FallbackValue=''}"
+                               TextWrapping="Wrap"
+                               FontSize="14"
+                               LineHeight="22" />
+                </ScrollViewer>
+
+                <!-- 下载进度区域 -->
+                <StackPanel Grid.Row="2" IsVisible="{Binding Dialogs.UpdateDialogCurrent.IsDownloading}" Margin="0,0,0,15" Spacing="8">
+                    <ProgressBar Value="{Binding Dialogs.UpdateDialogCurrent.DownloadProgress}"
+                                 Minimum="0" Maximum="100"
+                                 Height="6"
+                                 CornerRadius="3" />
+                    <TextBlock Text="{Binding Dialogs.UpdateDialogCurrent.DownloadStatusText, FallbackValue=''}"
+                               FontSize="12"
+                               HorizontalAlignment="Center"
+                               Opacity="0.7" />
+                </StackPanel>
+
+                <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
+                    <Button Content="{Binding Dialogs.UpdateDialogCurrent.CancelText, FallbackValue='取消'}"
+                            Width="100"
+                            IsEnabled="{Binding !Dialogs.UpdateDialogCurrent.IsDownloading}"
+                            Command="{Binding Dialogs.CloseUpdateDialogCommand}"
+                            CommandParameter="{x:False}" />
+                    <Button Content="{Binding Dialogs.UpdateDialogCurrent.ConfirmText, FallbackValue='确定'}"
+                            Width="120"
+                            Classes="accent"
+                            IsEnabled="{Binding !Dialogs.UpdateDialogCurrent.IsDownloading}"
+                            Command="{Binding Dialogs.CloseUpdateDialogCommand}"
+                            CommandParameter="{x:True}" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Button Grid.Row="0"
+                Grid.Column="1"
+                Width="52"
+                Height="52"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Bottom"
+                Margin="0,0,28,28"
+                CornerRadius="26"
+                Foreground="White"
+                ZIndex="100"
+                IsVisible="{Binding DownloadManager.HasAnyTasks}"
+                Command="{Binding DownloadManager.TogglePanelVisibilityCommand}">
+            <Button.Background>
+                <SolidColorBrush Color="{DynamicResource SystemAccentColor}" />
+            </Button.Background>
+            <Grid>
+                <Path Data="M12 4V1L8 5L12 9V6C15.31 6 18 8.69 18 12C18 13.01 17.75 13.97 17.3 14.8L18.76 16.26C19.54 14.99 20 13.55 20 12C20 7.58 16.42 4 12 4M12 18C8.69 18 6 15.31 6 12C6 10.99 6.25 10.03 6.7 9.2L5.24 7.74C4.46 9.01 4 10.45 4 12C4 16.42 7.58 20 12 20V23L16 19L12 15V18Z"
+                      Width="20" Height="20"
+                      Stretch="Uniform"
+                      Fill="White"
+                      HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                <Border Width="20"
+                        Height="20"
+                        CornerRadius="10"
+                        Background="{DynamicResource DangerBrush}"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Top"
+                        Margin="0,-6,-6,0"
+                        IsVisible="{Binding DownloadManager.ActiveTaskCount, Converter={x:Static converters:GreaterThanZeroToIsVisibleConverter.Instance}}">
+                    <TextBlock Text="{Binding DownloadManager.ActiveTaskCount}"
+                               FontSize="10"
+                               FontWeight="SemiBold"
+                               Foreground="White"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center" />
+                </Border>
+            </Grid>
+        </Button>
+
+        <Border Grid.Row="0"
+                Grid.Column="1"
+                Width="400"
+                MaxHeight="500"
+                CornerRadius="14"
+                BorderThickness="1"
+                BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
+                Background="{DynamicResource SystemControlBackgroundAltHighBrush}"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Bottom"
+                Margin="0,0,96,28"
+                IsVisible="{Binding DownloadManager.IsPanelVisible}"
+                BoxShadow="0 8 32 0 #66000000"
+                ZIndex="100"
+                Classes="download-panel">
+
+            <Grid RowDefinitions="Auto,*,Auto">
+                <!-- 标题栏 -->
+                <Border CornerRadius="14,14,0,0"
+                        Padding="14,12">
+                    <Border.Background>
+                        <SolidColorBrush Color="{DynamicResource SystemAccentColor}" />
+                    </Border.Background>
+                    <Grid ColumnDefinitions="*,Auto">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Path Data="M19 9H15V3H9V9H5L12 16L19 9M5 18V20H19V18H5Z"
+                                  Width="16" Height="16"
+                                  Stretch="Uniform" Fill="White"
+                                  VerticalAlignment="Center"/>
+                            <TextBlock Text="下载管理器" FontSize="15" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center" />
+                            <Border CornerRadius="8" Padding="6,2" Background="#30FFFFFF"
+                                    IsVisible="{Binding DownloadManager.ActiveTaskCount, FallbackValue=0}">
+                                <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="White">
+                                    <Run Text="{Binding DownloadManager.ActiveTaskCount, FallbackValue=0}"/>
+                                    <Run Text=" 个进行中"/>
+                                </TextBlock>
+                            </Border>
+                        </StackPanel>
+
+                        <Button Grid.Column="1"
+                                Width="28"
+                                Height="28"
+                                Classes="ghost"
+                                Foreground="White"
+                                Command="{Binding DownloadManager.ClosePanelCommand}">
+                            <Path Data="M6 6L18 18M6 18L18 6" 
+                                  Width="10" Height="10"
+                                  Stretch="Uniform"
+                                  Stroke="White" StrokeThickness="2"/>
+                        </Button>
+                    </Grid>
+                </Border>
+
+                <!-- 内容区域 -->
+                <ScrollViewer Grid.Row="1" MaxHeight="380">
+                    <Panel>
+                        <!-- 空状态 -->
+                        <Border IsVisible="{Binding DownloadManager.HasAnyTasks, FallbackValue=False, Converter={x:Static converters:NotConverter.Instance}}"
+                            Padding="32,40">
+                        <StackPanel Spacing="12" HorizontalAlignment="Center">
+                            <Path Data="M19 9H15V3H9V9H5L12 16L19 9Z"
+                                  Width="40" Height="40"
+                                  Stretch="Uniform"
+                                  Fill="{DynamicResource TextTertiaryBrush}"
+                                  Opacity="0.4"
+                                  HorizontalAlignment="Center"/>
+                            <TextBlock Text="暂无下载任务"
+                                       FontSize="14"
+                                       FontWeight="Medium"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                       HorizontalAlignment="Center" />
+                            <TextBlock Text="下载内容将在此处显示"
+                                       FontSize="12"
+                                       Foreground="{DynamicResource TextTertiaryBrush}"
+                                       HorizontalAlignment="Center" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- 任务列表 -->
+                    <ItemsControl ItemsSource="{Binding DownloadManager.Tasks}" Margin="12"
+                                  IsVisible="{Binding DownloadManager.HasAnyTasks}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="download:DownloadTask">
+                                <Border CornerRadius="10"
+                                        Padding="0"
+                                        Margin="0,0,0,8"
+                                        Background="{DynamicResource SystemControlBackgroundBaseHighBrush}">
+                                    <Grid ColumnDefinitions="4,*" MinHeight="72">
+                                        <!-- 状态指示条 -->
+                                        <Border Grid.Column="0"
+                                                CornerRadius="10,0,0,10"
+                                                Width="4"
+                                                HorizontalAlignment="Left">
+                                            <Border.Background>
+                                                <SolidColorBrush Color="{Binding StatusColor, FallbackValue=#3B82F6}" />
+                                            </Border.Background>
+                                        </Border>
+
+                                        <Grid Grid.Column="1"
+                                              RowDefinitions="Auto,Auto,Auto,Auto"
+                                              ColumnDefinitions="*,Auto"
+                                              Margin="10,10,10,8">
+
+                                            <!-- 第1行：名称 + 取消 -->
+                                            <StackPanel Grid.Row="0" Grid.Column="0"
+                                                        Orientation="Horizontal" Spacing="8"
+                                                        VerticalAlignment="Center">
+                                                <Border CornerRadius="4"
+                                                        Padding="4,1"
+                                                        Background="{DynamicResource SystemControlBackgroundAltHighBrush}">
+                                                    <TextBlock Text="{Binding TypeText, FallbackValue=版本}"
+                                                               FontSize="10"
+                                                               Foreground="{DynamicResource TextTertiaryBrush}" />
+                                                </Border>
+                                                <TextBlock Text="{Binding Name}"
+                                                           FontSize="13"
+                                                           FontWeight="Medium"
+                                                           TextTrimming="CharacterEllipsis"
+                                                           MaxWidth="220"
+                                                           VerticalAlignment="Center" />
+                                            </StackPanel>
+
+                                            <Button Grid.Row="0" Grid.Column="1"
+                                                    Width="24" Height="24"
+                                                    Classes="ghost" Padding="0"
+                                                    IsVisible="{Binding CanCancel, FallbackValue=False}"
+                                                    Command="{Binding $parent[Window].DataContext.DownloadManager.CancelTaskCommand}"
+                                                    CommandParameter="{Binding Id}">
+                                                <Path Data="M6 6L18 18M6 18L18 6" 
+                                                      Width="10" Height="10"
+                                                      Stretch="Uniform"
+                                                      Stroke="{DynamicResource TextSecondaryBrush}" StrokeThickness="2"/>
+                                            </Button>
+
+                                            <!-- 第2行：进度条 -->
+                                            <ProgressBar Grid.Row="1" Grid.ColumnSpan="2"
+                                                         Height="6"
+                                                         Minimum="0" Maximum="100"
+                                                         Value="{Binding Progress}"
+                                                         Margin="0,10,0,8" />
+
+                                            <!-- 第3行：状态信息 -->
+                                            <StackPanel Grid.Row="2" Grid.Column="0"
+                                                        Orientation="Horizontal" Spacing="6">
+                                                <Ellipse Width="6" Height="6"
+                                                         VerticalAlignment="Center">
+                                                    <Ellipse.Fill>
+                                                        <SolidColorBrush Color="{Binding StatusColor, FallbackValue=#3B82F6}" />
+                                                    </Ellipse.Fill>
+                                                </Ellipse>
+                                                <TextBlock Text="{Binding StatusText, FallbackValue=下载中}"
+                                                           FontSize="11"
+                                                           VerticalAlignment="Center">
+                                                    <TextBlock.Foreground>
+                                                        <SolidColorBrush Color="{Binding StatusColor, FallbackValue=#3B82F6}" />
+                                                    </TextBlock.Foreground>
+                                                </TextBlock>
+                                            </StackPanel>
+
+                                            <StackPanel Grid.Row="2" Grid.Column="1"
+                                                        Orientation="Horizontal" Spacing="8"
+                                                        HorizontalAlignment="Right">
+                                                <TextBlock Text="{Binding ProgressText, FallbackValue=0%}"
+                                                           FontSize="11"
+                                                           FontWeight="SemiBold"
+                                                           VerticalAlignment="Center">
+                                                    <TextBlock.Foreground>
+                                                        <SolidColorBrush Color="{Binding StatusColor, FallbackValue=#3B82F6}" />
+                                                    </TextBlock.Foreground>
+                                                </TextBlock>
+                                                <TextBlock Text="{Binding SpeedText}"
+                                                           FontSize="11"
+                                                           Foreground="{DynamicResource TextTertiaryBrush}"
+                                                           VerticalAlignment="Center" />
+                                            </StackPanel>
+
+                                            <!-- 第4行：状态详情 -->
+                                            <TextBlock Grid.Row="3" Grid.ColumnSpan="2"
+                                                       Text="{Binding StatusMessage}"
+                                                       IsVisible="{Binding StatusMessage, Converter={x:Static converters:StringNotEqualsConverter.Instance}, ConverterParameter=''}"
+                                                       FontSize="11"
+                                                       Foreground="{DynamicResource TextTertiaryBrush}"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       Margin="0,6,0,0" />
+                                        </Grid>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    </Panel>
+                </ScrollViewer>
+
+                <!-- 底部操作栏 -->
+                <Border Grid.Row="2"
+                        BorderThickness="0,1,0,0"
+                        BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
+                        Background="{DynamicResource SystemControlBackgroundAltHighBrush}"
+                        CornerRadius="0,0,14,14"
+                        Padding="14,10">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Grid.Column="0"
+                                   Text="{Binding DownloadManager.TaskSummary}"
+                                   FontSize="11"
+                                   Foreground="{DynamicResource TextTertiaryBrush}"
+                                   VerticalAlignment="Center"
+                                   TextTrimming="CharacterEllipsis" />
+                        <Button Grid.Column="1"
+                                Content="清除已完成"
+                                Classes="ghost"
+                                FontSize="12"
+                                IsVisible="{Binding DownloadManager.HasCompletedOrCancelledTasks, FallbackValue=False}"
+                                Command="{Binding DownloadManager.ClearInactiveTasksCommand}" />
+                    </Grid>
+                </Border>
+            </Grid>
+        </Border>
+
+        <ItemsControl x:Name="NotificationItemsControl"
+                      Grid.Row="0"
+                      Grid.Column="0"
+                      HorizontalAlignment="Center"
+                      VerticalAlignment="Top"
+                      Margin="0,12,0,0"
+                      IsHitTestVisible="True"
+                      ItemsSource="{Binding Notifications.Items}">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <StackPanel Spacing="10" />
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+
+            <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="notif:NotificationItemViewModel">
+                    <views:NotificationCardView />
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+    </Grid>
+    </Border>
+
+</Window>

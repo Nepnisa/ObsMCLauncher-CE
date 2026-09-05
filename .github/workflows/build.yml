@@ -1,0 +1,117 @@
+name: Build ObsMCLauncher
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    if: "!contains(github.event.head_commit.message, '[CI skip]') && !contains(github.event.head_commit.message, '[ci skip]')"
+
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+        rid:
+          - win-x86
+          - win-x64
+          - win-arm64
+          - linux-x64
+          - linux-arm64
+          - osx-x64
+          - osx-arm64
+        exclude:
+          - os: windows-latest
+            rid: linux-x64
+          - os: windows-latest
+            rid: linux-arm64
+          - os: windows-latest
+            rid: osx-x64
+          - os: windows-latest
+            rid: osx-arm64
+          - os: ubuntu-latest
+            rid: win-x86
+          - os: ubuntu-latest
+            rid: win-x64
+          - os: ubuntu-latest
+            rid: win-arm64
+          - os: ubuntu-latest
+            rid: osx-x64
+          - os: ubuntu-latest
+            rid: osx-arm64
+          - os: macos-latest
+            rid: win-x86
+          - os: macos-latest
+            rid: win-x64
+          - os: macos-latest
+            rid: win-arm64
+          - os: macos-latest
+            rid: linux-x64
+          - os: macos-latest
+            rid: linux-arm64
+
+    runs-on: ${{ matrix.os }}
+
+    env:
+      Project_Path: ObsMCLauncher.Desktop/ObsMCLauncher.Desktop.csproj
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Install .NET Core
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 8.0.x
+
+    - name: Cache NuGet packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.nuget/packages
+        key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+        restore-keys: |
+          ${{ runner.os }}-nuget-
+
+    - name: Restore dependencies
+      run: dotnet restore ${{ env.Project_Path }}
+
+    - name: Build application
+      run: dotnet build ${{ env.Project_Path }} -c Release --no-restore
+
+    - name: Get version info
+      id: version
+      shell: bash
+      run: |
+        date=$(date +%Y%m%d)
+        short_sha="${GITHUB_SHA:0:7}"
+        version="v1.0.0-$date-$short_sha"
+        echo "version=$version" >> $GITHUB_OUTPUT
+        echo "当前版本: $version"
+
+    - name: Publish application
+      run: |
+        dotnet publish ${{ env.Project_Path }} -c Release -r ${{ matrix.rid }} --self-contained false -p:DebugType=none -p:DebugSymbols=false -o ./publish/${{ matrix.rid }}
+
+    - name: Set executable permission (Linux/macOS)
+      if: runner.os != 'Windows'
+      run: |
+        if [ -f "./publish/${{ matrix.rid }}/ObsMCLauncher.Desktop" ]; then
+          chmod +x "./publish/${{ matrix.rid }}/ObsMCLauncher.Desktop"
+        fi
+
+    - name: Verify output
+      shell: bash
+      run: |
+        echo "发布目录内容:"
+        ls -la "./publish/${{ matrix.rid }}/"
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: ObsMCLauncher-${{ steps.version.outputs.version }}-${{ matrix.rid }}
+        path: ./publish/${{ matrix.rid }}/*
+        retention-days: 90

@@ -1,0 +1,256 @@
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+using CommunityToolkit.Mvvm.ComponentModel;
+
+namespace ObsMCLauncher.Desktop.ViewModels.Dialogs;
+
+public enum DialogType
+{
+    Info,
+    Success,
+    Warning,
+    Error,
+    Question,
+    Input
+}
+
+public enum DialogButtons
+{
+    OK,
+    OKCancel,
+    YesNo,
+    YesNoCancel
+}
+
+public enum DialogResult
+{
+    None,
+    OK,
+    Cancel,
+    Yes,
+    No
+}
+
+public record DialogStyle
+{
+    public double CornerRadius { get; init; } = 12.0;
+    public double BorderThickness { get; init; } = 1.0;
+    public double ShadowBlurRadius { get; init; } = 20.0;
+    public double ShadowOpacity { get; init; } = 0.3;
+    public double BackgroundOpacity { get; init; } = 0.85;
+    public string IconPath { get; init; } = string.Empty;
+    public string AccentColorKey { get; init; } = "SystemAccentColor";
+}
+
+public sealed partial class DialogRequest : ObservableObject
+{
+    public string Id { get; } = Guid.NewGuid().ToString();
+
+    public string Title { get; init; } = string.Empty;
+
+    public string Message { get; init; } = string.Empty;
+
+    public string InputText { get; set; } = string.Empty;
+
+    public string Placeholder { get; init; } = string.Empty;
+
+    public DialogType Type { get; init; }
+
+    public DialogButtons Buttons { get; init; }
+
+    public TaskCompletionSource<(DialogResult Result, string Text)> Completion { get; } = new();
+
+    public DialogStyle Style { get; init; } = new();
+
+    [ObservableProperty]
+    private double _animationOpacity = 0;
+
+    [ObservableProperty]
+    private double _animationScale = 0.5;
+
+    [ObservableProperty]
+    private double _animationOffsetY = -40;
+
+    private Timer? _animationTimer;
+    private int _animationStep = 0;
+    private static readonly int TotalSteps = 20;
+    private static readonly int EnterDuration = 400;
+
+    public void StartEnterAnimation()
+    {
+        _animationStep = 0;
+        _animationTimer?.Dispose();
+        _animationTimer = new Timer(AnimateEnterStep, null, 0, EnterDuration / TotalSteps);
+    }
+
+    private void AnimateEnterStep(object? state)
+    {
+        if (_animationStep > TotalSteps)
+        {
+            _animationTimer?.Dispose();
+            return;
+        }
+
+        var progress = (double)_animationStep / TotalSteps;
+        var easedProgress = EaseOutBack(progress);
+
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            AnimationOpacity = Math.Min(1, progress * 2);
+            AnimationScale = 0.5 + 0.5 * easedProgress;
+            AnimationOffsetY = -40 + 40 * EaseOutCubic(progress);
+            _animationStep++;
+        });
+    }
+
+    public void StartExitAnimation()
+    {
+        _animationTimer?.Dispose();
+        _animationStep = 0;
+        _animationTimer = new Timer(AnimateExitStep, null, 0, 15);
+    }
+
+    private void AnimateExitStep(object? state)
+    {
+        if (_animationStep > 10)
+        {
+            _animationTimer?.Dispose();
+            return;
+        }
+
+        var progress = (double)_animationStep / 10;
+
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            AnimationOpacity = 1 - progress;
+            AnimationScale = 1 - 0.2 * progress;
+            AnimationOffsetY = -20 * progress;
+            _animationStep++;
+        });
+    }
+
+    private static double EaseOutBack(double t)
+    {
+        const double c1 = 1.70158;
+        const double c3 = c1 + 1;
+        return 1 + c3 * Math.Pow(t - 1, 3) + c1 * Math.Pow(t - 1, 2);
+    }
+
+    private static double EaseOutCubic(double t)
+    {
+        return 1 - Math.Pow(1 - t, 3);
+    }
+}
+
+public sealed partial class UpdateDialogRequest : ObservableObject
+{
+    public string Id { get; } = Guid.NewGuid().ToString();
+
+    public string Title { get; init; } = string.Empty;
+
+    public string MarkdownContent { get; init; } = string.Empty;
+
+    public string ConfirmText { get; set; } = "确定";
+
+    public string CancelText { get; init; } = "取消";
+
+    public TaskCompletionSource<bool> Completion { get; } = new();
+
+    /// <summary>
+    /// 是否正在下载更新
+    /// </summary>
+    [ObservableProperty]
+    private bool _isDownloading;
+
+    /// <summary>
+    /// 下载进度 0-100
+    /// </summary>
+    [ObservableProperty]
+    private int _downloadProgress;
+
+    /// <summary>
+    /// 下载状态文本
+    /// </summary>
+    [ObservableProperty]
+    private string _downloadStatusText = string.Empty;
+
+    [ObservableProperty]
+    private double _animationOpacity = 0;
+
+    [ObservableProperty]
+    private double _animationScale = 0.5;
+
+    [ObservableProperty]
+    private double _animationOffsetY = -40;
+
+    private Timer? _animationTimer;
+    private int _animationStep = 0;
+    private static readonly int TotalSteps = 20;
+    private static readonly int EnterDuration = 400;
+
+    public void StartEnterAnimation()
+    {
+        _animationStep = 0;
+        _animationTimer?.Dispose();
+        _animationTimer = new Timer(AnimateEnterStep, null, 0, EnterDuration / TotalSteps);
+    }
+
+    private void AnimateEnterStep(object? state)
+    {
+        if (_animationStep > TotalSteps)
+        {
+            _animationTimer?.Dispose();
+            return;
+        }
+
+        var progress = (double)_animationStep / TotalSteps;
+        var easedProgress = EaseOutBack(progress);
+
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            AnimationOpacity = Math.Min(1, progress * 2);
+            AnimationScale = 0.5 + 0.5 * easedProgress;
+            AnimationOffsetY = -40 + 40 * EaseOutCubic(progress);
+            _animationStep++;
+        });
+    }
+
+    public void StartExitAnimation()
+    {
+        _animationTimer?.Dispose();
+        _animationStep = 0;
+        _animationTimer = new Timer(AnimateExitStep, null, 0, 15);
+    }
+
+    private void AnimateExitStep(object? state)
+    {
+        if (_animationStep > 10)
+        {
+            _animationTimer?.Dispose();
+            return;
+        }
+
+        var progress = (double)_animationStep / 10;
+
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            AnimationOpacity = 1 - progress;
+            AnimationScale = 1 - 0.2 * progress;
+            AnimationOffsetY = -20 * progress;
+            _animationStep++;
+        });
+    }
+
+    private static double EaseOutBack(double t)
+    {
+        const double c1 = 1.70158;
+        const double c3 = c1 + 1;
+        return 1 + c3 * Math.Pow(t - 1, 3) + c1 * Math.Pow(t - 1, 2);
+    }
+
+    private static double EaseOutCubic(double t)
+    {
+        return 1 - Math.Pow(1 - t, 3);
+    }
+}

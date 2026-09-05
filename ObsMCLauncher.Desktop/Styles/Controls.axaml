@@ -1,0 +1,516 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:dg="using:Avalonia.Controls"
+        xmlns:ui="using:FluentAvalonia.UI.Controls">
+
+  <!-- ===== 基础按钮 ===== -->
+  <Style Selector="Button">
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="Padding" Value="16,8" />
+    <Setter Property="CornerRadius" Value="{DynamicResource ControlCornerRadius}" />
+  </Style>
+
+  <!-- 模板内内容面板背景过渡：悬停/按下/禁用时颜色平滑渐变，避免生硬跳变 -->
+  <Style Selector="Button /template/ ContentPresenter">
+    <Setter Property="Transitions">
+      <Transitions>
+        <BrushTransition Property="Background" Duration="0:0:0.15" Easing="CircularEaseOut" />
+      </Transitions>
+    </Setter>
+  </Style>
+
+  <!-- 通用按钮悬停/按下：仅通过背景色变化，不用 Opacity/scale 避免闪烁 -->
+  <Style Selector="Button:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource SurfaceHoverBrush}" />
+  </Style>
+
+  <Style Selector="Button:pressed /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource SurfaceElevatedBrush}" />
+  </Style>
+
+  <!-- ===== 主色/强调按钮 primary & accent（共用样式） ===== -->
+  <Style Selector="Button.primary, Button.accent">
+    <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+    <Setter Property="Foreground" Value="White" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="FontWeight" Value="Medium" />
+  </Style>
+
+  <Style Selector="Button.primary:pointerover /template/ ContentPresenter,
+                   Button.accent:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AccentSecondaryBrush}" />
+  </Style>
+
+  <Style Selector="Button.primary:pressed /template/ ContentPresenter,
+                   Button.accent:pressed /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AccentSecondaryBrush}" />
+  </Style>
+
+  <!-- ===== 次级按钮 secondary ===== -->
+  <Style Selector="Button.secondary">
+    <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+  </Style>
+
+  <Style Selector="Button.secondary:pointerover /template/ ContentPresenter,
+                   Button.secondary:pressed /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource SurfaceHoverBrush}" />
+  </Style>
+
+  <!-- ===== 危险按钮 danger ===== -->
+  <Style Selector="Button.danger">
+    <Setter Property="Background" Value="{DynamicResource DangerBrush}" />
+    <Setter Property="Foreground" Value="White" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="FontWeight" Value="Medium" />
+  </Style>
+
+  <Style Selector="Button.danger:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource DangerDarkBrush}" />
+  </Style>
+
+  <Style Selector="Button.danger:pressed /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource DangerDarkBrush}" />
+  </Style>
+
+  <!-- ===== 幽灵/文字按钮 ghost ===== -->
+  <Style Selector="Button.ghost">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
+
+  <Style Selector="Button.ghost:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource NavItemSelectedBackgroundBrush}" />
+  </Style>
+
+  <Style Selector="Button.ghost:pressed /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource NavItemSelectedBackgroundBrush}" />
+  </Style>
+
+  <!-- ===== chrome-surface（标题栏/导航栏背景） ===== -->
+  <Style Selector="Border.chrome-surface">
+    <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundAltHighBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource SystemControlForegroundBaseLowBrush}" />
+  </Style>
+
+  <!-- ===== DataGrid ===== -->
+  <Style Selector="dg|DataGrid">
+    <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundBaseHighBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource SystemControlForegroundBaseHighBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource SystemControlForegroundBaseLowBrush}" />
+    <Setter Property="GridLinesVisibility" Value="All" />
+  </Style>
+
+  <Style Selector="dg|DataGridColumnHeader">
+    <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundAltHighBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource SystemControlForegroundBaseHighBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource SystemControlForegroundBaseLowBrush}" />
+  </Style>
+
+  <Style Selector="dg|DataGridCell">
+    <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundBaseHighBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource SystemControlForegroundBaseHighBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource SystemControlForegroundBaseLowBrush}" />
+  </Style>
+
+  <Style Selector="dg|DataGridRow:selected dg|DataGridCell">
+    <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundBaseMediumBrush}" />
+  </Style>
+
+  <Style Selector="dg|DataGridRow:pointerover dg|DataGridCell">
+    <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundBaseLowBrush}" />
+  </Style>
+
+  <!-- ===== 对话框按钮 ===== -->
+  <Style Selector="Button.dialog-button">
+    <Setter Property="MinWidth" Value="80"/>
+    <Setter Property="Padding" Value="16,8"/>
+    <Setter Property="CornerRadius" Value="8"/>
+    <Setter Property="FontSize" Value="14"/>
+    <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundBaseLowBrush}"/>
+  </Style>
+
+  <Style Selector="Button.dialog-button.primary">
+    <Setter Property="Background" Value="{DynamicResource SystemAccentColor}"/>
+    <Setter Property="Foreground" Value="White"/>
+  </Style>
+
+  <!-- ===== TextBox ===== -->
+  <Style Selector="TextBox">
+    <Setter Property="CornerRadius" Value="8"/>
+    <Setter Property="Height" Value="40"/>
+    <Setter Property="Background" Value="{DynamicResource InputBackgroundBrush}"/>
+    <Setter Property="Foreground" Value="{DynamicResource InputForegroundBrush}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+    <Setter Property="Padding" Value="12,8"/>
+    <Setter Property="Transitions">
+      <Transitions>
+        <BrushTransition Property="BorderBrush" Duration="0:0:0.15" />
+      </Transitions>
+    </Setter>
+  </Style>
+
+  <Style Selector="TextBox:focus-within">
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+  </Style>
+
+  <Style Selector="TextBox.fluent-input">
+    <Setter Property="CornerRadius" Value="8"/>
+    <Setter Property="Height" Value="40"/>
+    <Setter Property="Padding" Value="12,8"/>
+    <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundBaseHighBrush}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource SystemControlForegroundBaseLowBrush}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+  </Style>
+
+  <!-- ===== ComboBox ===== -->
+  <Style Selector="ComboBox">
+    <Setter Property="CornerRadius" Value="8"/>
+    <Setter Property="Height" Value="40"/>
+    <Setter Property="Background" Value="{DynamicResource InputBackgroundBrush}"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+    <Setter Property="Padding" Value="12,6"/>
+    <Setter Property="Transitions">
+      <Transitions>
+        <BrushTransition Property="BorderBrush" Duration="0:0:0.15" />
+      </Transitions>
+    </Setter>
+  </Style>
+
+  <Style Selector="ComboBox:focus-within">
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+  </Style>
+
+  <!-- ===== CheckBox ===== -->
+  <Style Selector="CheckBox">
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+  </Style>
+
+  <!-- ===== ToggleSwitch ===== -->
+  <Style Selector="ToggleSwitch">
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+  </Style>
+
+  <!-- ===== Expander ===== -->
+  <Style Selector="Expander">
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="BorderThickness" Value="0"/>
+  </Style>
+
+  <!-- ===== RadioButton ===== -->
+  <Style Selector="RadioButton">
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+  </Style>
+
+  <!-- ===== Slider ===== -->
+  <Style Selector="Slider">
+    <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource SurfaceElevatedBrush}"/>
+  </Style>
+
+  <Style Selector="Slider /template/ Border#TrackBackground">
+    <Setter Property="CornerRadius" Value="2"/>
+    <Setter Property="Height" Value="4"/>
+  </Style>
+
+  <Style Selector="Slider /template/ Thumb">
+    <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+    <Setter Property="Transitions">
+      <Transitions>
+        <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.1" />
+      </Transitions>
+    </Setter>
+  </Style>
+
+  <Style Selector="Slider /template/ Thumb:pressed">
+    <Setter Property="Background" Value="{DynamicResource AccentSecondaryBrush}"/>
+    <Setter Property="RenderTransform" Value="scale(1.15)"/>
+  </Style>
+
+  <Style Selector="Slider /template/ Thumb:pointerover">
+    <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
+    <Setter Property="RenderTransform" Value="scale(1.15)"/>
+  </Style>
+
+  <!-- ===== TabControl ===== -->
+  <Style Selector="TabControl">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="BorderThickness" Value="0"/>
+  </Style>
+
+  <!-- ===== 版本齿轮按钮 ===== -->
+  <Style Selector="Button.version-gear">
+    <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="8" />
+  </Style>
+
+  <Style Selector="Button.version-gear:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource SurfaceHoverBrush}" />
+  </Style>
+
+  <Style Selector="Button.version-gear:pressed /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource SurfaceHoverBrush}" />
+  </Style>
+
+  <Style Selector="Button.version-gear:disabled /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource SurfaceElevatedBrush}" />
+    <Setter Property="Opacity" Value="0.5" />
+  </Style>
+
+  <Style Selector="Button.version-gear:disabled">
+    <Setter Property="Foreground" Value="{DynamicResource TextTertiaryBrush}" />
+  </Style>
+
+  <!-- ===== 导航标签按钮 ===== -->
+  <Style Selector="Button.nav-tab">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="16,10" />
+    <Setter Property="CornerRadius" Value="0" />
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+  </Style>
+
+  <Style Selector="Button.nav-tab:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource NavItemSelectedBackgroundBrush}" />
+  </Style>
+
+  <Style Selector="Button.nav-tab:pressed /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource NavItemSelectedBackgroundBrush}" />
+  </Style>
+
+  <!-- 导航标签按钮 - 激活状态 -->
+  <Style Selector="Button.nav-tab.active">
+    <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+
+  <Style Selector="Button.nav-tab.active /template/ ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+
+  <Style Selector="Button.nav-tab.active:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource NavItemSelectedBackgroundBrush}" />
+  </Style>
+
+  <!-- ===== 卡片样式 ===== -->
+  <Style Selector="Border.card">
+    <Setter Property="Background" Value="{DynamicResource CardBackgroundBrush}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource CardCornerRadius}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Padding" Value="20" />
+    <Setter Property="BoxShadow" Value="{DynamicResource CardShadow}" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <BoxShadowsTransition Property="BoxShadow" Duration="0:0:0.2" />
+        <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.2" Easing="CircularEaseOut" />
+      </Transitions>
+    </Setter>
+  </Style>
+
+  <Style Selector="Border.card:pointerover">
+    <Setter Property="BoxShadow" Value="0 6 16 0 #30000000" />
+  </Style>
+
+  <!-- 可交互卡片（悬停上浮） -->
+  <Style Selector="Border.card-interactive">
+    <Setter Property="Background" Value="{DynamicResource CardBackgroundBrush}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource CardCornerRadius}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Padding" Value="20" />
+    <Setter Property="RenderTransformOrigin" Value="0.5,0.5" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <BoxShadowsTransition Property="BoxShadow" Duration="0:0:0.2" />
+        <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.2" Easing="CircularEaseOut" />
+      </Transitions>
+    </Setter>
+  </Style>
+
+  <Style Selector="Border.card-interactive:pointerover">
+    <Setter Property="BoxShadow" Value="0 6 16 0 #30000000" />
+    <Setter Property="RenderTransform" Value="translateY(-2px)" />
+  </Style>
+
+  <!-- ===== 骨架屏（Shimmer） ===== -->
+  <Style Selector="Border.shimmer">
+    <Setter Property="Background" Value="{DynamicResource SurfaceElevatedBrush}"/>
+    <Setter Property="CornerRadius" Value="6"/>
+  </Style>
+
+  <Style Selector="Border.shimmer-line">
+    <Setter Property="Background" Value="{DynamicResource SurfaceElevatedBrush}"/>
+    <Setter Property="CornerRadius" Value="4"/>
+    <Setter Property="Height" Value="12"/>
+  </Style>
+
+  <Style Selector="Border.shimmer-circle">
+    <Setter Property="Background" Value="{DynamicResource SurfaceElevatedBrush}"/>
+    <Setter Property="CornerRadius" Value="99"/>
+  </Style>
+
+  <!-- ===== 空状态 ===== -->
+  <Style Selector="StackPanel.empty-state">
+    <Setter Property="HorizontalAlignment" Value="Center"/>
+    <Setter Property="VerticalAlignment" Value="Center"/>
+    <Setter Property="Spacing" Value="8"/>
+  </Style>
+
+  <!-- ===== 分段选择按钮（Fluent Segmented 观感，无单选圆点） ===== -->
+  <Style Selector="RadioButton.segment">
+    <Setter Property="Template">
+      <ControlTemplate TargetType="RadioButton">
+        <Border x:Name="SegmentRoot"
+                Background="Transparent"
+                CornerRadius="6"
+                BorderThickness="0"
+                Padding="{TemplateBinding Padding}">
+          <ContentPresenter Content="{TemplateBinding Content}"
+                            ContentTemplate="{TemplateBinding ContentTemplate}"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"/>
+        </Border>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="RadioButton.segment">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="Padding" Value="12,6" />
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+  <Style Selector="RadioButton.segment:pointerover /template/ Border#SegmentRoot">
+    <Setter Property="Background" Value="{DynamicResource SurfaceHoverBrush}" />
+  </Style>
+  <Style Selector="RadioButton.segment:checked /template/ Border#SegmentRoot">
+    <Setter Property="Background" Value="{DynamicResource NavItemSelectedBackgroundBrush}" />
+  </Style>
+  <Style Selector="RadioButton.segment:checked">
+    <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="RadioButton.segment:focus-visible /template/ Border#SegmentRoot">
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+  </Style>
+
+  <!-- ===== 标签徽章（依赖类型 / 来源 / 最新） ===== -->
+  <Style Selector="Border.tag">
+    <Setter Property="CornerRadius" Value="3" />
+    <Setter Property="Padding" Value="4,1" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Border.tag TextBlock">
+    <Setter Property="FontSize" Value="9" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="White" />
+  </Style>
+  <Style Selector="Border.tag-accent">
+    <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+  </Style>
+
+  <!-- ===== 链接文字按钮（依赖跳转等） ===== -->
+  <Style Selector="Button.link">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="HorizontalContentAlignment" Value="Left" />
+  </Style>
+  <Style Selector="Button.link /template/ ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="Button.link:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+
+  <!-- ===== 紧凑图标按钮 ===== -->
+  <Style Selector="Button.icon-ghost">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="4" />
+    <Setter Property="CornerRadius" Value="4" />
+  </Style>
+  <Style Selector="Button.icon-ghost:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource SurfaceHoverBrush}" />
+  </Style>
+
+  <!-- ===== JVM 快捷参数 chip（ToggleButton 胶囊开关） ===== -->
+  <Style Selector="ToggleButton.chip">
+    <Setter Property="Background" Value="{DynamicResource SurfaceElevatedBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="14" />
+    <Setter Property="Padding" Value="10,5" />
+    <Setter Property="FontSize" Value="11" />
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+  <Style Selector="ToggleButton.chip:checked">
+    <Setter Property="Background" Value="{DynamicResource NavItemSelectedBackgroundBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="ToggleButton.chip:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource SurfaceHoverBrush}" />
+  </Style>
+  <Style Selector="ToggleButton.chip:checked:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource NavItemSelectedBackgroundBrush}" />
+  </Style>
+  <Style Selector="ToggleButton.chip:pressed /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource SurfaceElevatedBrush}" />
+  </Style>
+  <Style Selector="ToggleButton.chip:checked:pressed /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource NavItemSelectedBackgroundBrush}" />
+  </Style>
+
+  <!-- ===== 设置页分组（ClassIsland 风格） ===== -->
+
+  <!-- 分组卡片：一个分组框包裹若干设置行 -->
+  <Style Selector="Border.settings-card">
+    <Setter Property="Background" Value="{DynamicResource CardBackgroundBrush}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource CardCornerRadius}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Padding" Value="16,4" />
+  </Style>
+
+  <!-- 设置行：图标 | 标题/描述 | 控件 -->
+  <Style Selector="Grid.settings-row">
+    <Setter Property="MinHeight" Value="56" />
+    <Setter Property="ColumnSpacing" Value="12" />
+    <Setter Property="Margin" Value="0,10" />
+  </Style>
+
+  <!-- 设置行左侧图标 -->
+  <Style Selector="ui|SymbolIcon.settings-row-icon">
+    <Setter Property="FontSize" Value="17" />
+    <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+
+  <!-- 设置行之间的分隔线 -->
+  <Style Selector="Border.settings-divider">
+    <Setter Property="Height" Value="1" />
+    <Setter Property="Background" Value="{DynamicResource BorderBrush}" />
+    <Setter Property="Opacity" Value="0.5" />
+    <Setter Property="Margin" Value="0,2" />
+  </Style>
+
+</Styles>

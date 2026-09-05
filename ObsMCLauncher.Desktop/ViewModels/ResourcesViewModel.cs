@@ -1,0 +1,1265 @@
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.IO;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Avalonia;
+using Avalonia.Controls.ApplicationLifetimes;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using FluentAvalonia.UI.Controls;
+using ObsMCLauncher.Core.Models;
+using ObsMCLauncher.Core.Services;
+using ObsMCLauncher.Core.Services.Minecraft;
+using ObsMCLauncher.Core.Services.Modrinth;
+using ObsMCLauncher.Core.Utils;
+using ObsMCLauncher.Desktop.Views;
+
+using ObsMCLauncher.Desktop.ViewModels.Dialogs;
+
+namespace ObsMCLauncher.Desktop.ViewModels;
+
+public class SortOption
+{
+    public string Name { get; set; } = "";
+    public object Value { get; set; } = null!;
+}
+
+public partial class ResourcesViewModel : ViewModelBase
+{
+    private readonly ModrinthService _modrinth = new();
+    private readonly ModTranslationService _translation = ModTranslationService.Instance;
+
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, List<string>> _modrinthVersionCache = new();
+    private readonly SemaphoreSlim _modrinthVersionsSemaphore = new(6, 6);
+
+    private CancellationTokenSource? _searchCts;
+    private readonly SemaphoreSlim _debounceLock = new(1, 1);
+    private CancellationTokenSource? _debounceCts;
+
+    private static readonly TimeSpan SearchTimeout = TimeSpan.FromSeconds(60);
+
+    // 分页状态
+    private int _curseForgePage;
+    private int _modrinthOffset;
+    private int _chineseMatchOffset;
+    [ObservableProperty] private bool _isLoadingMore;
+    private const int ResourcePageSize = 20;
+
+    // --- 状态定义 ---
+    [ObservableProperty] private string _query = "";
+    [ObservableProperty] private string _status = "输入关键词开始搜索";
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowSkeleton))]
+    private bool _isLoading;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsEmptyVisible))]
+    private bool _isViewReady;
+    [ObservableProperty] private ResourceSource _currentSource = ResourceSource.Both;
+    [ObservableProperty] private string _currentResourceType = "Mods";
+    [ObservableProperty] private string? _selectedVersionId;
+    [ObservableProperty] private string _versionFilter = "全部版本";
+    [ObservableProperty] private bool _hasQuery;
+
+    // 顶部提示条（InfoBar）
+    [ObservableProperty] private bool _isInfoBarOpen;
+    [ObservableProperty] private string _infoBarTitle = "";
+    [ObservableProperty] private string _infoBarMessage = "";
+    [ObservableProperty] private InfoBarSeverity _infoBarSeverity = InfoBarSeverity.Informational;
+
+    // 实际用于 API 的排序值
+    private object _sortValue = 2;
+
+    [ObservableProperty] private int _currentSourceIndex = 2;
+    [ObservableProperty] private int _sortFieldIndex = 0;
+
+    public ObservableCollection<ResourceItemViewModel> Results { get; } = new();
+    public ObservableCollection<string> InstalledVersions { get; } = new();
+    public ObservableCollection<string> VersionFilters { get; } = new() { "全部版本", "1.21", "1.20", "1.19", "1.18", "1.16", "1.12" };
+    public ObservableCollection<SortOption> AvailableSortOptions { get; } = new();
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsListVisible))]
+    private ViewModelBase? _detailViewModel;
+
+    public bool IsListVisible => DetailViewModel == null;
+
+    public bool HasInstalledVersions => InstalledVersions.Count > 0;
+    public string VersionHintText => HasInstalledVersions ? "" : "未检测到游戏版本，请先下载版本";
+
+    public bool ShowSkeleton => IsLoading && Results.Count == 0;
+
+    /// <summary>列表为空且不在加载中（首次加载未完成前不显示）</summary>
+    public bool IsEmptyVisible => IsViewReady && !IsLoading && !IsLoadingMore && Results.Count == 0;
+
+    private class ResourceTypeState
+    {
+        public string Query { get; set; } = "";
+        public List<ResourceItemViewModel> CachedResults { get; set; } = new();
+    }
+
+    private readonly Dictionary<string, ResourceTypeState> _typeStates = new();
+
+    public IAsyncRelayCommand SearchCommand { get; }
+    public IRelayCommand<string> ChangeTypeCommand { get; }
+    public IRelayCommand<string> ChangeSourceCommand { get; }
+    public IRelayCommand ClearSearchCommand { get; }
+
+    public IRelayCommand<ResourceItemViewModel> OpenDetailCommand { get; }
+
+    public ResourcesViewModel()
+    {
+        SearchCommand = new AsyncRelayCommand(SearchAsync, () => !IsLoading);
+        ChangeTypeCommand = new RelayCommand<string>(ChangeType);
+        ChangeSourceCommand = new RelayCommand<string>(ChangeSource);
+        ClearSearchCommand = new RelayCommand(ClearSearch);
+        OpenDetailCommand = new RelayCommand<ResourceItemViewModel>(OpenDetail);
+
+        UpdateAvailableSortOptions();
+        SortFieldIndex = 0;
+
+        Results.CollectionChanged += (_, _) =>
+        {
+            OnPropertyChanged(nameof(ShowSkeleton));
+            OnPropertyChanged(nameof(IsEmptyVisible));
+        };
+
+        LoadInstalledVersions();
+        _ = InitializeAsync();
+    }
+
+    private void ChangeSource(string? index)
+    {
+        if (int.TryParse(index, out var i) && CurrentSourceIndex != i)
+            CurrentSourceIndex = i;
+    }
+
+    private void ClearSearch()
+    {
+        if (Query.Length == 0)
+        {
+            if (IsViewReady && !IsLoading)
+                _ = SearchAsync();
+            return;
+        }
+        Query = "";
+    }
+
+    partial void OnIsLoadingChanged(bool value)
+    {
+        OnPropertyChanged(nameof(IsEmptyVisible));
+    }
+
+    partial void OnIsLoadingMoreChanged(bool value)
+    {
+        OnPropertyChanged(nameof(IsEmptyVisible));
+    }
+
+    partial void OnIsViewReadyChanged(bool value)
+    {
+        OnPropertyChanged(nameof(IsEmptyVisible));
+    }
+
+    partial void OnQueryChanged(string value)
+    {
+        HasQuery = !string.IsNullOrEmpty(value);
+        if (!IsViewReady) return;
+
+        _debounceCts?.Cancel();
+        _debounceCts?.Dispose();
+        _debounceCts = new CancellationTokenSource();
+        _ = DebouncedSearchAsync(_debounceCts.Token);
+    }
+
+    private async Task InitializeAsync()
+    {
+        await SearchAsync();
+        IsViewReady = true;
+    }
+
+    private async Task DebouncedSearchAsync(CancellationToken ct)
+    {
+        try
+        {
+            await Task.Delay(300, ct).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+
+        await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(async () =>
+        {
+            if (!ct.IsCancellationRequested)
+                await SearchAsync();
+        });
+    }
+
+    private void UpdateAvailableSortOptions()
+    {
+        AvailableSortOptions.Clear();
+        if (CurrentSource == ResourceSource.CurseForge || CurrentSource == ResourceSource.Both)
+        {
+            AvailableSortOptions.Add(new SortOption { Name = "最热门", Value = 2 });
+            AvailableSortOptions.Add(new SortOption { Name = "下载量", Value = 6 });
+            AvailableSortOptions.Add(new SortOption { Name = "最新更新", Value = 3 });
+            AvailableSortOptions.Add(new SortOption { Name = "名称", Value = 4 });
+        }
+        else
+        {
+            AvailableSortOptions.Add(new SortOption { Name = "相关度", Value = "relevance" });
+            AvailableSortOptions.Add(new SortOption { Name = "下载量", Value = "downloads" });
+            AvailableSortOptions.Add(new SortOption { Name = "最新发布", Value = "newest" });
+            AvailableSortOptions.Add(new SortOption { Name = "最近更新", Value = "updated" });
+        }
+    }
+
+    partial void OnCurrentSourceIndexChanged(int value)
+    {
+        CurrentSource = value switch
+        {
+            1 => ResourceSource.Modrinth,
+            2 => ResourceSource.Both,
+            _ => ResourceSource.CurseForge
+        };
+        
+        UpdateAvailableSortOptions();
+        SortFieldIndex = 0;
+        
+        if (IsViewReady && !IsLoading)
+            _ = SearchAsync();
+    }
+
+    partial void OnSortFieldIndexChanged(int value)
+    {
+        if (value >= 0 && value < AvailableSortOptions.Count)
+        {
+            _sortValue = AvailableSortOptions[value].Value;
+        }
+
+        if (IsViewReady && !IsLoading)
+        {
+            _ = SearchAsync();
+        }
+    }
+
+    private void LoadInstalledVersions()
+    {
+        try
+        {
+            InstalledVersions.Clear();
+            var config = LauncherConfig.Load();
+            var versionsDir = Path.Combine(config.GameDirectory, "versions");
+            if (!Directory.Exists(versionsDir)) return;
+
+            foreach (var dir in Directory.GetDirectories(versionsDir))
+            {
+                var name = Path.GetFileName(dir);
+                if (File.Exists(Path.Combine(dir, $"{name}.json")))
+                    InstalledVersions.Add(name);
+            }
+
+            FilterVersionsByResourceType();
+
+            if (!string.IsNullOrEmpty(config.SelectedVersion) && InstalledVersions.Contains(config.SelectedVersion))
+                SelectedVersionId = config.SelectedVersion;
+            else if (InstalledVersions.Count > 0)
+                SelectedVersionId = InstalledVersions[0];
+            else
+                SelectedVersionId = null;
+
+            OnPropertyChanged(nameof(HasInstalledVersions));
+            OnPropertyChanged(nameof(VersionHintText));
+        }
+        catch (Exception ex)
+        {
+            Status = $"加载本地版本失败: {ex.Message}";
+            InfoBarSeverity = InfoBarSeverity.Warning;
+            InfoBarTitle = "读取本地版本失败";
+            InfoBarMessage = ex.Message;
+            IsInfoBarOpen = true;
+        }
+    }
+
+    private void FilterVersionsByResourceType()
+    {
+        if (CurrentResourceType != "Mods")
+            return;
+
+        var moddableVersions = new List<string>();
+        foreach (var version in InstalledVersions.ToList())
+        {
+            var type = DetectVersionType(version);
+            if (type != "vanilla" && type != "optifine")
+                moddableVersions.Add(version);
+        }
+
+        InstalledVersions.Clear();
+        foreach (var v in moddableVersions)
+            InstalledVersions.Add(v);
+    }
+
+    private void ChangeType(string? type)
+    {
+        if (string.IsNullOrEmpty(type) || type == CurrentResourceType) return;
+
+        SaveCurrentState();
+        CurrentResourceType = type;
+
+        _typeStates.Remove(type);
+        LoadInstalledVersions();
+
+        Query = "";
+        Results.Clear();
+        _ = SearchAsync();
+    }
+
+    partial void OnVersionFilterChanged(string value)
+    {
+        if (IsViewReady && !IsLoading)
+            _ = SearchAsync();
+    }
+
+    private void SaveCurrentState()
+    {
+        if (!_typeStates.ContainsKey(CurrentResourceType))
+            _typeStates[CurrentResourceType] = new ResourceTypeState();
+
+        var state = _typeStates[CurrentResourceType];
+        state.Query = Query;
+        state.CachedResults = Results.ToList();
+    }
+
+    /// <summary>详情页导航栈：依赖跳转会压栈，返回时逐级弹出，回到列表才清空</summary>
+    private readonly Stack<ModDetailViewModel> _detailStack = new();
+
+    public void OpenDetail(ResourceItemViewModel? item)
+    {
+        if (item?.RawData == null) return;
+        PushDetail(CreateDetailViewModel(item.RawData));
+    }
+
+    private void OpenDetailByRawData(object rawData)
+    {
+        PushDetail(CreateDetailViewModel(rawData));
+    }
+
+    private ModDetailViewModel CreateDetailViewModel(object rawData)
+    {
+        var selectedVersion = SelectedVersionId ?? LauncherConfig.Load().SelectedVersion ?? string.Empty;
+        var detailVm = new ModDetailViewModel(rawData, selectedVersion, CurrentResourceType, GoBack);
+        detailVm.DependencyNavigationRequested += rawDep => OpenDetailByRawData(rawDep);
+        return detailVm;
+    }
+
+    private void PushDetail(ModDetailViewModel vm)
+    {
+        _detailStack.Push(vm);
+        DetailViewModel = vm;
+    }
+
+    /// <summary>返回上一级：依赖详情 → 上级模组详情 → 列表</summary>
+    private void GoBack()
+    {
+        if (_detailStack.Count > 1)
+        {
+            _detailStack.Pop();
+            DetailViewModel = _detailStack.Peek();
+        }
+        else
+        {
+            _detailStack.Clear();
+            DetailViewModel = null;
+        }
+    }
+
+    private async Task SearchAsync()
+    {
+        if (IsLoading) return;
+
+        _searchCts?.Cancel();
+        _searchCts?.Dispose();
+        _searchCts = new CancellationTokenSource();
+        _searchCts.CancelAfter(SearchTimeout);
+        var ct = _searchCts.Token;
+
+        try
+        {
+            IsLoading = true;
+            Status = "正在从云端获取资源...";
+            Results.Clear();
+
+            // 重置分页
+            _curseForgePage = 0;
+            _modrinthOffset = 0;
+            _chineseMatchOffset = 0;
+
+            string gameVersion = "";
+            if (VersionFilter != "全部版本") gameVersion = VersionFilter;
+            else if (!string.IsNullOrEmpty(SelectedVersionId)) gameVersion = ExtractGameVersion(SelectedVersionId);
+
+            var chineseMatchTasks = SearchByChineseTranslation(gameVersion, ct);
+
+            if (CurrentSource == ResourceSource.Both)
+            {
+                await Task.WhenAll(
+                    SearchCurseForge(gameVersion, ct),
+                    SearchModrinth(gameVersion, ct),
+                    chineseMatchTasks
+                );
+            }
+            else if (CurrentSource == ResourceSource.CurseForge)
+            {
+                await Task.WhenAll(
+                    SearchCurseForge(gameVersion, ct),
+                    chineseMatchTasks
+                );
+            }
+            else
+            {
+                await Task.WhenAll(
+                    SearchModrinth(gameVersion, ct),
+                    chineseMatchTasks
+                );
+            }
+
+            ApplyFuzzyFilter();
+            if (CurrentSource == ResourceSource.Both)
+                MergeResultsByRelevance(0);
+
+            Status = Results.Count > 0 ? $"找到 {Results.Count} 个资源" : "未找到匹配资源";
+            IsInfoBarOpen = false;
+        }
+        catch (OperationCanceledException)
+        {
+            Status = ct.IsCancellationRequested ? "搜索超时，已显示部分结果" : "搜索已取消";
+            if (ct.IsCancellationRequested)
+            {
+                InfoBarSeverity = InfoBarSeverity.Warning;
+                InfoBarTitle = "搜索超时";
+                InfoBarMessage = "云端响应较慢，当前仅显示了部分结果，可稍后重试";
+                IsInfoBarOpen = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            Status = $"搜索异常: {ex.Message}";
+            InfoBarSeverity = InfoBarSeverity.Error;
+            InfoBarTitle = "搜索失败";
+            InfoBarMessage = ex.Message;
+            IsInfoBarOpen = true;
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private async Task SearchByChineseTranslation(string gameVersion, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(Query)) return;
+
+        var allTranslations = _translation.GetAllTranslations();
+        var lowerQuery = Query.ToLowerInvariant();
+        var matchedTranslations = allTranslations.Where(t =>
+        {
+            if (t.ChineseName.Contains(lowerQuery, StringComparison.OrdinalIgnoreCase)) return true;
+            if (!string.IsNullOrWhiteSpace(t.Abbreviation) &&
+                t.Abbreviation.Contains(lowerQuery, StringComparison.OrdinalIgnoreCase)) return true;
+            return false;
+        }).ToList();
+
+        if (matchedTranslations.Count == 0) return;
+
+        var existingIds = new HashSet<string>();
+        await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            foreach (var item in Results)
+                existingIds.Add(item.Id);
+        });
+
+        var curseForgeIds = matchedTranslations
+            .Where(t => int.TryParse(t.CurseForgeId, out _))
+            .Select(t => int.Parse(t.CurseForgeId))
+            .Where(id => !existingIds.Contains(id.ToString()))
+            .Skip(_chineseMatchOffset)
+            .Take(10)
+            .ToList();
+
+        if (curseForgeIds.Count > 0 && (CurrentSource == ResourceSource.CurseForge || CurrentSource == ResourceSource.Both))
+        {
+            try
+            {
+                var mods = await CurseForgeService.GetModsAsync(curseForgeIds).ConfigureAwait(false);
+                if (mods != null)
+                {
+                    var items = new List<ResourceItemViewModel>();
+                    var tasks = new List<Task>();
+                    foreach (var mod in mods.Values)
+                    {
+                        if (existingIds.Contains(mod.Id.ToString())) continue;
+                        var translation = _translation.GetTranslationByCurseForgeId(mod.Slug)
+                                       ?? _translation.GetTranslationByCurseForgeId(mod.Id);
+                        var item = new ResourceItemViewModel(mod, translation);
+                        items.Add(item);
+                        tasks.Add(item.LoadIconAsync());
+                        existingIds.Add(mod.Id.ToString());
+                    }
+                    await Task.WhenAll(tasks);
+                    await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
+                    {
+                        foreach (var item in items)
+                            Results.Add(item);
+                    });
+                }
+            }
+            catch (OperationCanceledException) { throw; }
+            catch { }
+        }
+
+        var modrinthIds = matchedTranslations
+            .SelectMany(t => t.ModIds)
+            .Where(id => !string.IsNullOrWhiteSpace(id) && !existingIds.Contains(id))
+            .Skip(_chineseMatchOffset)
+            .Take(10)
+            .ToList();
+
+        if (modrinthIds.Count > 0 && (CurrentSource == ResourceSource.Modrinth || CurrentSource == ResourceSource.Both))
+        {
+            try
+            {
+                var projects = await _modrinth.GetProjectsAsync(modrinthIds, ct).ConfigureAwait(false);
+                if (projects != null)
+                {
+                    var items = new List<ResourceItemViewModel>();
+                    var tasks = new List<Task>();
+                    foreach (var project in projects.Values)
+                    {
+                        if (existingIds.Contains(project.Id)) continue;
+                        var translation = _translation.GetTranslationById(project.Id);
+                        var hit = new ModrinthSearchHit
+                        {
+                            ProjectId = project.Id,
+                            Title = project.Title,
+                            Description = project.Description,
+                            IconUrl = null
+                        };
+                        var item = new ResourceItemViewModel(hit, translation);
+                        items.Add(item);
+                        tasks.Add(item.LoadIconAsync());
+                        existingIds.Add(project.Id);
+                    }
+                    await Task.WhenAll(tasks);
+                    await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
+                    {
+                        foreach (var item in items)
+                            Results.Add(item);
+                    });
+                }
+            }
+            catch (OperationCanceledException) { throw; }
+            catch { }
+        }
+    }
+
+    [RelayCommand]
+    private async Task LoadMoreResources()
+    {
+        if (IsLoadingMore || IsLoading || string.IsNullOrWhiteSpace(Query)) return;
+        IsLoadingMore = true;
+
+        var chunkStart = Results.Count;
+
+        try
+        {
+            _searchCts?.Cancel();
+            _searchCts?.Dispose();
+            _searchCts = new CancellationTokenSource();
+            _searchCts.CancelAfter(SearchTimeout);
+            var ct = _searchCts.Token;
+
+            string gameVersion = "";
+            if (VersionFilter != "全部版本") gameVersion = VersionFilter;
+            else if (!string.IsNullOrEmpty(SelectedVersionId)) gameVersion = ExtractGameVersion(SelectedVersionId);
+
+            var tasks = new List<Task>();
+
+            if (CurrentSource == ResourceSource.Both || CurrentSource == ResourceSource.CurseForge)
+            {
+                _curseForgePage++;
+                tasks.Add(SearchCurseForge(gameVersion, ct, _curseForgePage));
+            }
+
+            if (CurrentSource == ResourceSource.Both || CurrentSource == ResourceSource.Modrinth)
+            {
+                _modrinthOffset += ResourcePageSize;
+                tasks.Add(SearchModrinth(gameVersion, ct, _modrinthOffset));
+            }
+
+            // 中文翻译匹配也加载更多
+            _chineseMatchOffset += 10;
+            tasks.Add(SearchByChineseTranslation(gameVersion, ct));
+
+            await Task.WhenAll(tasks);
+
+            ApplyFuzzyFilter();
+            if (CurrentSource == ResourceSource.Both)
+                MergeResultsByRelevance(chunkStart);
+
+            Status = Results.Count > 0 ? $"找到 {Results.Count} 个资源" : "未找到匹配资源";
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception ex)
+        {
+            Status = $"加载更多失败: {ex.Message}";
+            InfoBarSeverity = InfoBarSeverity.Error;
+            InfoBarTitle = "加载更多失败";
+            InfoBarMessage = ex.Message;
+            IsInfoBarOpen = true;
+        }
+        finally
+        {
+            IsLoadingMore = false;
+        }
+    }
+
+    private void ApplyFuzzyFilter()
+    {
+        if (string.IsNullOrWhiteSpace(Query)) return;
+
+        var lowerQuery = Query.ToLowerInvariant();
+        var toRemove = new List<ResourceItemViewModel>();
+
+        foreach (var item in Results)
+        {
+            var translation = _translation.GetTranslationById(item.Id);
+            if (translation == null && item.RawData is CurseForgeMod cf)
+                translation = _translation.GetTranslationByCurseForgeId(cf.Slug)
+                           ?? _translation.GetTranslationByCurseForgeId(cf.Id);
+
+            bool matches = item.Title.Contains(lowerQuery, StringComparison.OrdinalIgnoreCase)
+                        || item.DisplayName.Contains(lowerQuery, StringComparison.OrdinalIgnoreCase)
+                        || item.Description.Contains(lowerQuery, StringComparison.OrdinalIgnoreCase);
+
+            if (!matches && translation != null)
+            {
+                matches = _translation.MatchesSearch(item.Title, translation, Query);
+            }
+
+            if (!matches)
+            {
+                var words = lowerQuery.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                if (words.Length > 1)
+                {
+                    matches = words.All(w =>
+                        item.Title.Contains(w, StringComparison.OrdinalIgnoreCase)
+                        || item.DisplayName.Contains(w, StringComparison.OrdinalIgnoreCase)
+                        || (translation != null && (
+                            translation.ChineseName.Contains(w, StringComparison.OrdinalIgnoreCase)
+                            || (translation.Abbreviation?.Contains(w, StringComparison.OrdinalIgnoreCase) ?? false)))
+                    );
+                }
+            }
+
+            if (!matches)
+                toRemove.Add(item);
+        }
+
+        foreach (var item in toRemove)
+            Results.Remove(item);
+    }
+
+    /// <summary>
+    /// 混合源模式下按匹配度归并排序：高匹配度条目聚在一起，同分时两个来源轮流穿插，
+    /// 避免"先全部 CurseForge 再全部 Modrinth"的块状分布。
+    /// </summary>
+    private void MergeResultsByRelevance(int startIndex)
+    {
+        if (startIndex < 0 || startIndex >= Results.Count) return;
+
+        var chunk = Results.Skip(startIndex).ToList();
+        if (chunk.Count <= 1) return;
+
+        var merged = MergeByRelevance(chunk);
+        for (var i = 0; i < merged.Count; i++)
+            Results[startIndex + i] = merged[i];
+    }
+
+    private List<ResourceItemViewModel> MergeByRelevance(List<ResourceItemViewModel> items)
+    {
+        var cf = items.Where(i => i.IsCurseForge).ToList();
+        var mr = items.Where(i => i.IsModrinth).ToList();
+
+        // 浏览模式（无关键词）：两个来源轮流穿插
+        if (string.IsNullOrWhiteSpace(Query))
+        {
+            var merged = new List<ResourceItemViewModel>(items.Count);
+            var ci = 0;
+            var mi = 0;
+            while (ci < cf.Count || mi < mr.Count)
+            {
+                if (ci < cf.Count) merged.Add(cf[ci++]);
+                if (mi < mr.Count) merged.Add(mr[mi++]);
+            }
+            return merged;
+        }
+
+        // 搜索模式：按匹配度降序；同分条目内两来源轮流穿插
+        var scored = items
+            .Select(item => (Item: item, Score: ComputeRelevance(item)))
+            .OrderByDescending(x => x.Score)
+            .ToList();
+
+        var result = new List<ResourceItemViewModel>(items.Count);
+        foreach (var group in scored.GroupBy(x => x.Score))
+        {
+            var cfQueue = new Queue<ResourceItemViewModel>(group.Where(x => x.Item.IsCurseForge).Select(x => x.Item));
+            var mrQueue = new Queue<ResourceItemViewModel>(group.Where(x => x.Item.IsModrinth).Select(x => x.Item));
+            while (cfQueue.Count > 0 || mrQueue.Count > 0)
+            {
+                if (cfQueue.Count > 0) result.Add(cfQueue.Dequeue());
+                if (mrQueue.Count > 0) result.Add(mrQueue.Dequeue());
+            }
+        }
+        return result;
+    }
+
+    private int ComputeRelevance(ResourceItemViewModel item)
+    {
+        var q = Query.Trim();
+        if (q.Length == 0) return 0;
+
+        var lower = q.ToLowerInvariant();
+        var title = item.Title.ToLowerInvariant();
+        var display = item.DisplayName.ToLowerInvariant();
+
+        if (string.Equals(title, lower, StringComparison.Ordinal) ||
+            string.Equals(display, lower, StringComparison.Ordinal))
+            return 100;
+        if (title.StartsWith(lower, StringComparison.Ordinal) ||
+            display.StartsWith(lower, StringComparison.Ordinal))
+            return 90;
+        if (title.Contains(lower, StringComparison.Ordinal) ||
+            display.Contains(lower, StringComparison.Ordinal))
+            return 80;
+
+        var translation = _translation.GetTranslationById(item.Id);
+        if (translation != null &&
+            (translation.ChineseName.Contains(q, StringComparison.OrdinalIgnoreCase) ||
+             (!string.IsNullOrWhiteSpace(translation.Abbreviation) &&
+              translation.Abbreviation.Contains(q, StringComparison.OrdinalIgnoreCase))))
+            return 75;
+
+        if (item.Description.Contains(lower, StringComparison.OrdinalIgnoreCase))
+            return 60;
+
+        return 10;
+    }
+
+    private static string ExtractGameVersion(string versionId)
+    {
+        var match = System.Text.RegularExpressions.Regex.Match(versionId, @"^(\d+\.\d+(?:\.\d+)?)");
+        return match.Success ? match.Groups[1].Value : "";
+    }
+
+    private async Task SearchCurseForge(string gameVersion, CancellationToken ct, int pageIndex = 0)
+    {
+        int classId = CurrentResourceType switch
+        {
+            "Mods" => 6,
+            "Textures" => 12,
+            "Shaders" => 6552,
+            "Modpacks" => 4471,
+            "Datapacks" => 6945,
+            _ => 6
+        };
+
+        var response = await CurseForgeService.SearchModsAsync(
+            searchFilter: Query,
+            gameVersion: gameVersion,
+            classId: classId,
+            sortField: _sortValue is int i ? i : 2,
+            pageIndex: pageIndex,
+            pageSize: ResourcePageSize
+        ).ConfigureAwait(false);
+
+        if (response?.Data == null) return;
+
+        var items = new List<ResourceItemViewModel>();
+        var tasks = new List<Task>();
+        foreach (var mod in response.Data)
+        {
+            ct.ThrowIfCancellationRequested();
+            var translation = _translation.GetTranslationByCurseForgeId(mod.Slug)
+                           ?? _translation.GetTranslationByCurseForgeId(mod.Id);
+
+            var item = new ResourceItemViewModel(mod, translation);
+            items.Add(item);
+            tasks.Add(item.LoadIconAsync());
+        }
+        await Task.WhenAll(tasks);
+
+        await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            foreach (var item in items)
+                Results.Add(item);
+        });
+    }
+
+    private async Task SearchModrinth(string gameVersion, CancellationToken ct, int offset = 0)
+    {
+        string projectType = CurrentResourceType switch
+        {
+            "Mods" => "mod",
+            "Textures" => "resourcepack",
+            "Shaders" => "shader",
+            "Modpacks" => "modpack",
+            "Datapacks" => "datapack",
+            _ => "mod"
+        };
+
+        var response = await _modrinth.SearchModsAsync(
+            searchQuery: Query,
+            gameVersion: gameVersion,
+            projectType: projectType,
+            sortBy: _sortValue is string s ? s : "relevance",
+            offset: offset,
+            limit: ResourcePageSize
+        ).ConfigureAwait(false);
+
+        if (response?.Hits == null) return;
+
+        var items = new List<ResourceItemViewModel>();
+        var tasks = new List<Task>();
+        foreach (var hit in response.Hits)
+        {
+            ct.ThrowIfCancellationRequested();
+            var translation = _translation.GetTranslationById(hit.ProjectId);
+
+            var item = new ResourceItemViewModel(hit, translation);
+            items.Add(item);
+
+            tasks.Add(item.LoadIconAsync());
+            _ = LoadModrinthVersionsAsync(item, hit.ProjectId);
+        }
+        await Task.WhenAll(tasks);
+
+        await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            foreach (var item in items)
+                Results.Add(item);
+        });
+    }
+
+    private async Task LoadModrinthVersionsAsync(ResourceItemViewModel item, string projectId)
+    {
+        try
+        {
+            if (_modrinthVersionCache.TryGetValue(projectId, out var cached))
+            {
+                item.UpdateVersions(cached);
+                return;
+            }
+
+            await _modrinthVersionsSemaphore.WaitAsync().ConfigureAwait(false);
+            try
+            {
+                if (_modrinthVersionCache.TryGetValue(projectId, out cached))
+                {
+                    item.UpdateVersions(cached);
+                    return;
+                }
+
+                var versions = await _modrinth.GetProjectVersionsAsync(projectId).ConfigureAwait(false);
+                if (versions == null || versions.Count == 0)
+                {
+                    _modrinthVersionCache.TryAdd(projectId, new List<string>());
+                    return;
+                }
+
+                var mcVersions = versions
+                    .SelectMany(v => v.GameVersions ?? new List<string>())
+                    .Distinct()
+                    .ToList();
+
+                var sorted = VersionUtils.FilterAndSortVersions(mcVersions);
+
+                _modrinthVersionCache.TryAdd(projectId, sorted);
+                item.UpdateVersions(sorted);
+            }
+            finally
+            {
+                _modrinthVersionsSemaphore.Release();
+            }
+        }
+        catch
+        {
+        }
+    }
+
+    private static string DetectVersionType(string versionName)
+    {
+        var lower = (versionName ?? string.Empty).ToLowerInvariant();
+
+        if (lower.Contains("forge") && !lower.Contains("neoforge")) return "forge";
+        if (lower.Contains("neoforge")) return "neoforge";
+        if (lower.Contains("fabric")) return "fabric";
+        if (lower.Contains("quilt")) return "quilt";
+        if (lower.Contains("optifine")) return "optifine";
+
+        return "vanilla";
+    }
+
+    private bool ValidateModsTargetVersion(out string versionName, out string? error)
+    {
+        versionName = SelectedVersionId ?? LauncherConfig.Load().SelectedVersion ?? string.Empty;
+
+        if (string.IsNullOrWhiteSpace(versionName))
+        {
+            error = "请先选择要安装到的游戏版本";
+            return false;
+        }
+
+        var type = DetectVersionType(versionName);
+        if (type == "vanilla" || type == "optifine")
+        {
+            error = "所选版本不支持安装MOD，请选择Forge、Fabric、NeoForge或Quilt版本";
+            return false;
+        }
+
+        error = null;
+        return true;
+    }
+
+    private string GetTargetDirectory(LauncherConfig config)
+    {
+        var version = SelectedVersionId ?? config.SelectedVersion ?? "";
+        
+        // 获取实际运行目录（处理版本隔离）
+        var runDir = config.GetRunDirectory(version);
+
+        return CurrentResourceType switch
+        {
+            "Mods" => config.GetModsDirectory(version),
+            "Textures" => config.GetResourcePacksDirectory(version),
+            "Shaders" => config.GetShaderPacksDirectory(version),
+            "Datapacks" => Path.Combine(runDir, "saves"), // 默认打开 saves 目录供选择具体存档
+            "Modpacks" => Path.Combine(config.GetDataDirectory(), "downloads", "modpacks"),
+            _ => Path.Combine(config.GetDataDirectory(), "downloads")
+        };
+    }
+
+    [RelayCommand]
+    private async Task DownloadAsync(ResourceItemViewModel item)
+    {
+        try
+        {
+            var config = LauncherConfig.Load();
+            var gameVersion = VersionFilter != "全部版本" ? VersionFilter : (ExtractGameVersion(SelectedVersionId ?? config.SelectedVersion ?? ""));
+
+            if (CurrentResourceType == "Modpacks")
+            {
+                var mainWindow = NavigationStore.MainWindow;
+                if (mainWindow == null) return;
+
+                // 统一整合包下载逻辑：确认版本名 -> 下载到 versions 根目录 -> 安装
+                var (dialogResult, versionName) = await mainWindow.Dialogs.ShowInputAsync(
+                    "安装整合包",
+                    "请输入安装后的版本名称：",
+                    item.Title,
+                    "版本名称");
+
+                if (dialogResult != DialogResult.OK || string.IsNullOrWhiteSpace(versionName))
+                {
+                    Status = "已取消整合包安装";
+                    return;
+                }
+
+                // 获取整合包文件信息
+                string fileName = "";
+                if (item.RawData is CurseForgeMod cf)
+                {
+                    var fileInfo = await GetCfLatestFile(cf, gameVersion);
+                    fileName = fileInfo?.FileName ?? $"{item.Title}.zip";
+                }
+                else if (item.RawData is ModrinthSearchHit mh)
+                {
+                    var versions = await _modrinth.GetProjectVersionsAsync(mh.ProjectId);
+                    fileName = versions?.FirstOrDefault()?.Files?.FirstOrDefault()?.Filename ?? $"{item.Title}.mrpack";
+                }
+
+                if (string.IsNullOrEmpty(fileName))
+                {
+                    Status = "无法获取整合包文件信息";
+                    return;
+                }
+
+                // 下载到 versions 根目录
+                var versionsDir = Path.Combine(config.GameDirectory, "versions");
+                if (!Directory.Exists(versionsDir)) Directory.CreateDirectory(versionsDir);
+                var savePath = Path.Combine(versionsDir, fileName);
+
+                Status = $"正在下载整合包: {fileName}";
+                
+                // 先下载zip到 versions 根目录，再安装
+                await DownloadAndInstallModpackAsync(item.RawData, savePath, gameVersion, versionName);
+                return;
+            }
+
+            // 原有的 MOD/资源包/光影 下载逻辑 (保持另存为)
+            var defaultDir = GetTargetDirectory(config);
+            var defaultFileName = "";
+
+            // 1. 预获取文件名
+            if (item.RawData is CurseForgeMod cfModForName)
+            {
+                var fileInfo = await GetCfLatestFile(cfModForName, gameVersion);
+                defaultFileName = fileInfo?.FileName ?? $"{item.Title}.jar";
+            }
+            else if (item.RawData is ModrinthSearchHit mhForName)
+            {
+                var versions = await _modrinth.GetProjectVersionsAsync(mhForName.ProjectId);
+                defaultFileName = versions?.FirstOrDefault()?.Files?.FirstOrDefault()?.Filename ?? $"{item.Title}.jar";
+            }
+
+            // 2. 弹出保存文件对话框
+            var savePathNormal = await ShowSaveFileDialogAsync(defaultDir, defaultFileName);
+            if (string.IsNullOrEmpty(savePathNormal))
+            {
+                Status = "已取消下载";
+                return;
+            }
+
+            var finalDir = Path.GetDirectoryName(savePathNormal)!;
+            var finalFileName = Path.GetFileName(savePathNormal);
+
+            // 3. 执行下载
+            if (item.RawData is CurseForgeMod cfMod)
+            {
+                Status = $"正在下载: {finalFileName}";
+                await CurseForgeDownloadService.DownloadLatestAsync(cfMod, finalDir, gameVersion).ConfigureAwait(false);
+                Status = $"下载完成: {finalFileName}";
+            }
+            else if (item.RawData is ModrinthSearchHit mhHit)
+            {
+                Status = $"正在下载: {finalFileName}";
+                await ModrinthDownloadService.DownloadLatestModAsync(mhHit.ProjectId, finalDir, CancellationToken.None).ConfigureAwait(false);
+                Status = $"下载完成: {finalFileName}";
+            }
+        }
+        catch (Exception ex)
+        {
+            Status = $"下载失败: {ex.Message}";
+        }
+    }
+
+    private async Task<CurseForgeFile?> GetCfLatestFile(CurseForgeMod mod, string? gameVersion)
+    {
+        if (!string.IsNullOrEmpty(gameVersion))
+        {
+            var index = mod.LatestFilesIndexes
+                .Where(i => string.Equals(i.GameVersion, gameVersion, StringComparison.OrdinalIgnoreCase))
+                .OrderByDescending(i => i.ReleaseType)
+                .FirstOrDefault();
+            if (index != null)
+                return await CurseForgeService.GetModFileInfoAsync(mod.Id, index.FileId).ConfigureAwait(false);
+        }
+        return mod.LatestFiles.FirstOrDefault();
+    }
+
+    private async Task<string?> ShowSaveFileDialogAsync(string defaultDir, string defaultFileName)
+    {
+        if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+        {
+            var storage = desktop.MainWindow?.StorageProvider;
+            if (storage == null) return null;
+
+            if (!Directory.Exists(defaultDir))
+            {
+                Directory.CreateDirectory(defaultDir);
+            }
+
+            var options = new Avalonia.Platform.Storage.FilePickerSaveOptions
+            {
+                Title = "保存资源",
+                SuggestedFileName = defaultFileName,
+                SuggestedStartLocation = await storage.TryGetFolderFromPathAsync(new Uri(Path.GetFullPath(defaultDir)))
+            };
+
+            var file = await storage.SaveFilePickerAsync(options);
+            return file?.Path.LocalPath;
+        }
+        return null;
+    }
+
+    private async Task DownloadAndInstallModpackAsync(object rawData, string savePath, string? gameVersion, string versionName)
+    {
+        string? taskId = null;
+        CancellationTokenSource cts = new();
+        try
+        {
+            var config = LauncherConfig.Load();
+            var fileName = Path.GetFileName(savePath);
+            
+            var task = Core.Services.Download.DownloadTaskManager.Instance.AddTask(
+                $"安装整合包: {versionName}",
+                Core.Services.Download.DownloadTaskType.Version,
+                cts);
+            taskId = task.Id;
+
+            // 1. 下载阶段 (0-50%)
+            Status = $"正在下载整合包...";
+            bool downloadOk = false;
+
+            if (rawData is CurseForgeMod cf)
+            {
+                var fileInfo = await GetCfLatestFile(cf, gameVersion);
+                if (fileInfo == null) throw new Exception("无法获取整合包文件信息");
+                
+                var progress = new Progress<int>(p => 
+                    Core.Services.Download.DownloadTaskManager.Instance.UpdateTaskProgress(taskId, p * 0.5, $"正在下载: {fileName} ({p}%)"));
+                
+                downloadOk = await CurseForgeService.DownloadModFileAsync(fileInfo, savePath, progress, cts.Token);
+            }
+            else if (rawData is ModrinthSearchHit mh)
+            {
+                var versions = await _modrinth.GetProjectVersionsAsync(mh.ProjectId);
+                var file = versions?.FirstOrDefault()?.Files?.FirstOrDefault();
+                if (file == null) throw new Exception("无法获取整合包下载地址");
+
+                var progress = new Progress<int>(p => 
+                    Core.Services.Download.DownloadTaskManager.Instance.UpdateTaskProgress(taskId, p * 0.5, $"正在下载: {fileName} ({p}%)"));
+                
+                // 这里复用核心下载服务
+                await Core.Services.Download.HttpDownloadService.DownloadFileToPathAsync(file.Url, savePath, taskId, cts.Token);
+                downloadOk = true;
+            }
+
+            if (!downloadOk || cts.Token.IsCancellationRequested)
+            {
+                if (File.Exists(savePath)) try { File.Delete(savePath); } catch { }
+                Core.Services.Download.DownloadTaskManager.Instance.FailTask(taskId, "下载中断或失败");
+                Status = "整合包下载失败";
+                return;
+            }
+
+            // 2. 安装阶段 (50-100%)
+            Status = $"正在安装整合包: {versionName}";
+            Core.Services.Download.DownloadTaskManager.Instance.UpdateTaskProgress(taskId, 50, "正在解压并安装...");
+
+            await ModpackInstallService.InstallModpackAsync(
+                savePath,
+                versionName,
+                config.GameDirectory,
+                (msg, progress) =>
+                {
+                    var totalProgress = 50 + (progress * 0.5);
+                    Core.Services.Download.DownloadTaskManager.Instance.UpdateTaskProgress(taskId, totalProgress, msg);
+                }
+            );
+
+            Core.Services.Download.DownloadTaskManager.Instance.CompleteTask(taskId);
+            Status = $"整合包 {versionName} 安装成功！";
+        }
+        catch (Exception ex)
+        {
+            if (taskId != null)
+                Core.Services.Download.DownloadTaskManager.Instance.FailTask(taskId, ex.Message);
+            Status = $"安装失败: {ex.Message}";
+        }
+        finally
+        {
+            cts.Dispose();
+        }
+    }
+}
+
+public partial class ResourceItemViewModel : ObservableObject
+{
+    public string Id { get; }
+    public string Title { get; }
+    public string DisplayName { get; }
+    public string Description { get; }
+    public string Author { get; }
+    public string IconUrl { get; }
+    public string Downloads { get; }
+
+    [ObservableProperty]
+    private List<string> versions = new();
+
+    [ObservableProperty]
+    private Avalonia.Media.Imaging.Bitmap? icon;
+
+    public string VersionDisplay
+    {
+        get
+        {
+            if (Versions.Count == 0) return string.Empty;
+            if (Versions.Count <= 5) return string.Join(", ", Versions);
+            return string.Join(", ", Versions.Take(3).Concat(new[] { "...", Versions[^1] }));
+        }
+    }
+
+    public object RawData { get; }
+
+    public bool IsCurseForge => RawData is CurseForgeMod;
+    public bool IsModrinth => RawData is ModrinthSearchHit;
+    public string SourceDisplay => IsCurseForge ? "CurseForge" : "Modrinth";
+
+    public ResourceItemViewModel(CurseForgeMod mod, ModTranslation? translation)
+    {
+        Id = mod.Id.ToString();
+        Title = mod.Name;
+        DisplayName = ModTranslationService.Instance.GetDisplayName(mod.Name, translation);
+        Description = mod.Summary;
+        Author = mod.Authors.FirstOrDefault()?.Name ?? "未知";
+        IconUrl = mod.Logo?.ThumbnailUrl ?? "";
+        Downloads = CurseForgeService.FormatDownloadCount(mod.DownloadCount);
+        Versions = VersionUtils.FilterAndSortVersions(mod.LatestFilesIndexes.Select(f => f.GameVersion));
+        RawData = mod;
+        OnPropertyChanged(nameof(VersionDisplay));
+    }
+
+    public ResourceItemViewModel(ModrinthSearchHit hit, ModTranslation? translation)
+    {
+        Id = hit.ProjectId;
+        Title = hit.Title;
+        DisplayName = ModTranslationService.Instance.GetDisplayName(hit.Title, translation);
+        Description = hit.Description ?? string.Empty;
+        Author = hit.Author ?? "未知";
+        IconUrl = hit.IconUrl ?? "";
+        Downloads = hit.Downloads.ToString();
+        Versions = new List<string>();
+        RawData = hit;
+        OnPropertyChanged(nameof(VersionDisplay));
+    }
+
+    public void UpdateVersions(List<string> v)
+    {
+        Versions = v;
+        OnPropertyChanged(nameof(VersionDisplay));
+    }
+
+    public async Task LoadIconAsync()
+    {
+        if (Icon != null) return;
+        var path = await ImageCacheService.GetImagePathAsync(IconUrl);
+        if (string.IsNullOrEmpty(path) || !File.Exists(path)) return;
+
+        await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            try
+            {
+                if (Icon != null) return;
+                var newIcon = new Avalonia.Media.Imaging.Bitmap(path);
+                Icon = newIcon;
+            }
+            catch
+            {
+                // 加载失败逻辑
+            }
+        });
+    }
+}

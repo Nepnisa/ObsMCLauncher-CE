@@ -1,0 +1,56 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:ObsMCLauncher.Desktop.ViewModels"
+        xmlns:ui="using:FluentAvalonia.UI.Controls"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="760" d:DesignHeight="560"
+        x:Class="ObsMCLauncher.Desktop.Windows.WelcomeWindow"
+        x:DataType="vm:WelcomeViewModel"
+        Icon="/Assets/app_icon.ico"
+        Title="欢迎使用 ObsMCLauncher"
+        Width="760"
+        Height="560"
+        CanResize="False"
+        WindowStartupLocation="CenterScreen">
+
+    <Window.Styles>
+        <!-- 主内容区：初始不可见不可点击，添加 anim 类后淡入 -->
+        <Style Selector="Border.welcome-content">
+            <Setter Property="Opacity" Value="0" />
+            <Setter Property="IsHitTestVisible" Value="False" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.6" Easing="CubicEaseOut" />
+                </Transitions>
+            </Setter>
+        </Style>
+
+        <Style Selector="Border.welcome-content.anim">
+            <Setter Property="Opacity" Value="1" />
+            <Setter Property="IsHitTestVisible" Value="True" />
+        </Style>
+    </Window.Styles>
+
+    <Border x:Name="WindowRoot"
+            Background="{DynamicResource WindowBackgroundBrush}"
+            BoxShadow="{DynamicResource WindowShadow}"
+            CornerRadius="0"
+            ClipToBounds="True">
+        <Grid RowDefinitions="*">
+
+            <!-- 内容区 -->
+            <Grid Grid.Row="0" Background="{DynamicResource BackgroundBrush}">
+
+                <!-- 主内容区：窗口打开后加 anim 类淡入，内部 Frame 做分页导航（开场字母动画、版本号与数据迁移入口都在欢迎首页内） -->
+                <Border x:Name="ContentRoot" Classes="welcome-content">
+                    <ui:Frame x:Name="WelcomeFrame"
+                              IsNavigationStackEnabled="False"
+                              Margin="24"
+                              Background="Transparent" />
+                </Border>
+            </Grid>
+        </Grid>
+    </Border>
+
+</Window>

@@ -1,0 +1,120 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="ObsMCLauncher.Desktop.App"
+             xmlns:local="using:ObsMCLauncher.Desktop"
+             xmlns:vm="using:ObsMCLauncher.Desktop.ViewModels"
+             xmlns:converters="using:ObsMCLauncher.Desktop.Converters"
+             xmlns:fa="using:FluentAvalonia.Styling"
+             RequestedThemeVariant="Default">
+             <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
+
+    <Application.Resources>
+        <converters:BitmapAssetValueConverter x:Key="BitmapAssetValueConverter"/>
+        <converters:CardIconConverter x:Key="CardIconConverter"/>
+    </Application.Resources>
+
+    <!-- 主页组件模板：真实主页与设置页的模拟主页共用。
+         必须放在 ViewLocator 之前，具体类型优先于 ViewModelBase 的通用匹配。 -->
+    <Application.DataTemplates>
+
+      <!-- 欢迎横幅 -->
+      <DataTemplate x:DataType="vm:WelcomeComponentViewModel">
+        <Border Classes="home-card"
+                CornerRadius="{DynamicResource CardCornerRadius}"
+                MinHeight="120"
+                MinWidth="{Binding MinWidth}"
+                ClipToBounds="True"
+                BorderThickness="0"
+                PointerPressed="Card_PointerPressed"
+                Cursor="Hand">
+          <Border.Background>
+            <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+              <GradientStop Color="{DynamicResource HomeWelcomeGradientStart}" Offset="0"/>
+              <GradientStop Color="{DynamicResource HomeWelcomeGradientEnd}" Offset="1"/>
+            </LinearGradientBrush>
+          </Border.Background>
+
+          <Grid DataContext="{Binding Card}" HorizontalAlignment="Stretch">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="Auto"/>
+              <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Width="64" Height="64" CornerRadius="14"
+                    Background="#20FFFFFF" Margin="28,0,20,0"
+                    VerticalAlignment="Center">
+              <Image Source="{Binding Source='avares://ObsMCLauncher.Desktop/Assets/logo.png', Converter={StaticResource BitmapAssetValueConverter}}"
+                     Width="40" Height="40"
+                     VerticalAlignment="Center" HorizontalAlignment="Center"/>
+            </Border>
+
+            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="6">
+              <TextBlock Text="{Binding Title}"
+                         FontSize="24" FontWeight="SemiBold"
+                         Foreground="White"/>
+              <TextBlock Text="{Binding Description}"
+                         FontSize="13" Foreground="#CCFFFFFF"/>
+            </StackPanel>
+          </Grid>
+        </Border>
+      </DataTemplate>
+
+      <!-- 通用数据卡片（内置导航卡片与插件卡片） -->
+      <DataTemplate x:DataType="vm:CardComponentViewModel">
+        <Border Classes="home-card"
+                Background="{DynamicResource LayerFillColorPrimaryBrush}"
+                CornerRadius="{DynamicResource CardCornerRadius}"
+                Padding="16"
+                Margin="0,0,10,10"
+                MinWidth="{Binding MinWidth}"
+                MinHeight="84"
+                VerticalAlignment="Top"
+                BorderThickness="1"
+                BorderBrush="{DynamicResource CardBorderBrush}"
+                Cursor="{Binding Card.CommandId, Converter={x:Static converters:NullToCursorConverter.Instance}}"
+                PointerPressed="Card_PointerPressed">
+          <StackPanel Spacing="6">
+            <Grid Width="22" Height="22" HorizontalAlignment="Left">
+              <Path Data="{Binding Card.Icon, Converter={StaticResource CardIconConverter}}"
+                    IsVisible="{Binding Card.Icon, Converter={StaticResource CardIconConverter}, ConverterParameter=IsPath}"
+                    Fill="{DynamicResource AccentBrush}"
+                    Width="20" Height="20" Stretch="Uniform"
+                    HorizontalAlignment="Center" VerticalAlignment="Center"/>
+              <TextBlock Text="{Binding Card.Icon}"
+                         IsVisible="{Binding Card.Icon, Converter={StaticResource CardIconConverter}, ConverterParameter=IsText}"
+                         FontSize="22"
+                         Foreground="{DynamicResource AccentBrush}"
+                         HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Grid>
+            <TextBlock Text="{Binding Card.Title}" FontSize="13" FontWeight="Medium" TextWrapping="Wrap" Foreground="{DynamicResource TextBrush}"/>
+            <TextBlock Text="{Binding Card.Description}" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap" MaxLines="2"/>
+          </StackPanel>
+        </Border>
+      </DataTemplate>
+
+      <local:ViewLocator/>
+    </Application.DataTemplates>
+
+    <Application.Styles>
+        <FluentTheme />
+        <fa:FluentAvaloniaTheme />
+        <StyleInclude Source="avares://ObsMCLauncher.Desktop/Styles/Theme.axaml" />
+        <StyleInclude Source="avares://ObsMCLauncher.Desktop/Styles/Controls.axaml" />
+        <StyleInclude Source="avares://ObsMCLauncher.Desktop/Styles/FluentDialogStyles.axaml" />
+
+        <!-- 主页卡片通用动效（欢迎横幅/数据卡片） -->
+        <Style Selector="Border.home-card">
+            <Setter Property="Transitions">
+              <Transitions>
+                <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.2" Easing="CubicEaseOut"/>
+                <BrushTransition Property="Background" Duration="0:0:0.15"/>
+              </Transitions>
+            </Setter>
+            <Setter Property="RenderTransform" Value="scale(1.0)"/>
+        </Style>
+        <Style Selector="Border.home-card:pointerover">
+            <Setter Property="RenderTransform" Value="scale(1.02)"/>
+            <Setter Property="Background" Value="{DynamicResource SurfaceHoverBrush}"/>
+        </Style>
+    </Application.Styles>
+</Application>

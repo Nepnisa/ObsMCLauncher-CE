@@ -1,0 +1,693 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ObsMCLauncher.Desktop.ViewModels"
+             xmlns:converters="using:ObsMCLauncher.Desktop.Converters"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
+             xmlns:core="using:ObsMCLauncher.Core.Plugins"
+             xmlns:mdxaml="https://github.com/whistyun/Markdown.Avalonia"
+             x:Class="ObsMCLauncher.Desktop.Views.MoreView"
+             x:DataType="vm:MoreViewModel"
+             x:Name="MoreViewControl">
+
+  <Grid RowDefinitions="Auto,*">
+    <Border Grid.Row="0"
+            Background="{DynamicResource SurfaceBrush}"
+            BorderBrush="{DynamicResource BorderBrush}"
+            BorderThickness="0,0,0,1"
+            Padding="24,8"
+            Height="56">
+      <TabControl SelectedIndex="{Binding SelectedTabIndex}"
+                  Background="Transparent"
+                  BorderThickness="0"
+                  Padding="0"
+                  ItemsSource="{Binding Tabs}">
+        <TabControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:TabItemViewModel">
+            <StackPanel Spacing="4" HorizontalAlignment="Center">
+              <TextBlock Text="{Binding Header}"
+                         FontSize="14"
+                         FontWeight="SemiBold"
+                         HorizontalAlignment="Center"/>
+            </StackPanel>
+          </DataTemplate>
+        </TabControl.ItemTemplate>
+        <TabControl.ContentTemplate>
+          <DataTemplate x:DataType="vm:TabItemViewModel">
+            <Panel/>
+          </DataTemplate>
+        </TabControl.ContentTemplate>
+
+        <TabControl.Styles>
+          <Style Selector="TabItem">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="16,8"/>
+            <Setter Property="Margin" Value="0,0,6,0"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+          </Style>
+
+          <Style Selector="TabItem:selected">
+            <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource PrimaryBrush}"/>
+            <Setter Property="BorderThickness" Value="0,0,0,2"/>
+            <Setter Property="CornerRadius" Value="0"/>
+          </Style>
+
+          <Style Selector="TabItem:pointerover">
+            <Setter Property="Background" Value="{DynamicResource NavItemSelectedBackgroundBrush}"/>
+          </Style>
+        </TabControl.Styles>
+      </TabControl>
+    </Border>
+
+    <Grid Grid.Row="1">
+      <ScrollViewer VerticalScrollBarVisibility="Auto"
+                    HorizontalScrollBarVisibility="Disabled"
+                    Padding="24">
+        <ScrollViewer.IsVisible>
+          <MultiBinding Converter="{x:Static converters:TabContentTypeConverter.Instance}" ConverterParameter="AboutViewModel">
+            <Binding Path="#MoreViewControl.DataContext.Tabs"/>
+            <Binding Path="#MoreViewControl.DataContext.SelectedTabIndex"/>
+          </MultiBinding>
+        </ScrollViewer.IsVisible>
+        <StackPanel MaxWidth="800" DataContext="{Binding About}" Margin="12,16,12,24">
+          <Border Background="{DynamicResource SurfaceElevatedBrush}"
+                  CornerRadius="12" Padding="20" Margin="0,0,0,12"
+                  BorderThickness="1" BorderBrush="{DynamicResource BorderBrush}">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+              <Border Grid.Column="0" Width="72" Height="72" CornerRadius="12" ClipToBounds="True"
+                      Background="{DynamicResource SurfaceBrush}" Margin="0,0,16,0">
+                <Image Source="avares://ObsMCLauncher.Desktop/Assets/logo.png" Stretch="Uniform"/>
+              </Border>
+
+              <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                <TextBlock Text="ObsMCLauncher-CE"
+                           FontSize="22" FontWeight="SemiBold"
+                           PointerPressed="TitleText_PointerPressed"/>
+
+                <TextBlock Text="黑曜石 Minecraft 启动器 - 社区版"
+                           FontSize="13" Foreground="{DynamicResource TextSecondaryBrush}"
+                           Margin="0,3,0,0"/>
+
+                <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,6,0,0">
+                  <TextBlock Text="{Binding VersionText}"
+                             FontSize="12" Foreground="{DynamicResource TextTertiaryBrush}"/>
+                  <TextBlock Text="{Binding UpdateChannelText}"
+                             FontSize="12" FontWeight="Medium"
+                             Foreground="{DynamicResource PrimaryBrush}"/>
+                </StackPanel>
+              </StackPanel>
+
+              <Button Grid.Column="2" Command="{Binding CheckUpdateCommand}"
+                      IsEnabled="{Binding !IsCheckingUpdate}"
+                      Height="34" Padding="18,0" VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <Path Data="M17.65 6.35C16.2 4.9 14.21 4 12 4C7.58 4 4.01 7.58 4.01 12S7.58 20 12 20C15.73 20 18.84 17.45 19.73 14H17.65C16.83 16.33 14.61 18 12 18C8.69 18 6 15.31 6 12S8.69 6 12 6C13.66 6 15.14 6.69 16.22 7.78L13 11H20V4L17.65 6.35Z"
+                        Width="14" Height="14" Stretch="Uniform" Fill="{DynamicResource TextBrush}" VerticalAlignment="Center"/>
+                  <TextBlock Text="检查更新" VerticalAlignment="Center" FontSize="13"/>
+                </StackPanel>
+              </Button>
+            </Grid>
+          </Border>
+
+          <ui:SettingsExpander Header="关于" IsExpanded="True">
+            <ui:SettingsExpanderItem Content="介绍"
+                                     Description="ObsMCLauncher-CE 是一款社区维护的 Minecraft 启动器，在官方版基础上新增社区功能，采用 .NET 8.0 和 Avalonia 技术开发。">
+              <ui:SettingsExpanderItem.IconSource>
+                <ui:PathIconSource Data="M12 2C6.48 2 2 6.48 2 12S6.48 22 12 22 22 17.52 22 12 17.52 2 12 2M13 17H11V15H13V17M13 13H11V7H13V13Z"/>
+              </ui:SettingsExpanderItem.IconSource>
+            </ui:SettingsExpanderItem>
+
+            <ui:SettingsExpanderItem Content="开源协议" Description="GNU GPL v3.0">
+              <ui:SettingsExpanderItem.IconSource>
+                <ui:PathIconSource Data="M12 2C6.48 2 2 6.48 2 12S6.48 22 12 22 22 17.52 22 12 17.52 2 12 2M12 20C7.59 20 4 16.41 4 12S7.59 4 12 4 20 7.59 20 12 16.41 20 12 20M11 7H13V13H11V7M11 15H13V17H11V15Z"/>
+              </ui:SettingsExpanderItem.IconSource>
+            </ui:SettingsExpanderItem>
+
+            <ui:SettingsExpanderItem Content="技术栈" Description=".NET 8.0 | Avalonia | C#">
+              <ui:SettingsExpanderItem.IconSource>
+                <ui:PathIconSource Data="M9.4 16.6L4.8 12L9.4 7.4L8 6L2 12L8 18L9.4 16.6M14.6 16.6L19.2 12L14.6 7.4L16 6L22 12L16 18L14.6 16.6Z"/>
+              </ui:SettingsExpanderItem.IconSource>
+            </ui:SettingsExpanderItem>
+
+            <ui:SettingsExpanderItem Content="版权" Description="© 2026 ObsMCLauncher-CE">
+              <ui:SettingsExpanderItem.IconSource>
+                <ui:PathIconSource Data="M12 2C6.48 2 2 6.48 2 12S6.48 22 12 22 22 17.52 22 12 17.52 2 12 2M12 20C7.59 20 4 16.41 4 12S7.59 4 12 4 20 7.59 20 12 16.41 20 12 20M11 7H13V13H11V7M11 15H13V17H11V15Z"/>
+              </ui:SettingsExpanderItem.IconSource>
+            </ui:SettingsExpanderItem>
+          </ui:SettingsExpander>
+
+          <ui:SettingsExpander Header="免责声明" IsExpanded="True">
+            <ui:SettingsExpanderItem Content="第三方工具声明"
+                                     Description="本启动器为第三方工具，与 Mojang Studios 和 Microsoft 无关。Minecraft 是 Mojang Studios 的注册商标。使用本软件即表示您同意自行承担使用风险。">
+              <ui:SettingsExpanderItem.IconSource>
+                <ui:PathIconSource Data="M12 2C6.48 2 2 6.48 2 12S6.48 22 12 22 22 17.52 22 12 17.52 2 12 2M13 17H11V15H13V17M13 13H11V7H13V13Z"/>
+              </ui:SettingsExpanderItem.IconSource>
+            </ui:SettingsExpanderItem>
+          </ui:SettingsExpander>
+
+          <ui:SettingsExpander Header="相关链接" IsExpanded="False">
+            <ui:SettingsExpanderItem Content="官方版仓库" Description="github.com/mcobs/ObsMCLauncher"
+                                     IsClickEnabled="True" Command="{Binding OpenOfficialRepoCommand}">
+              <ui:SettingsExpanderItem.IconSource>
+                <ui:PathIconSource Data="M12 2C6.48 2 2 6.48 2 12C2 16.42 4.87 20.17 8.84 21.5C9.34 21.58 9.5 21.27 9.5 21C9.5 20.77 9.5 20.14 9.5 19.31C6.73 19.91 6.14 17.97 6.14 17.97C5.68 16.81 5.03 16.5 5.03 16.5C4.12 15.88 5.1 15.9 5.1 15.9C6.1 15.97 6.63 16.93 6.63 16.93C7.5 18.45 8.97 18 9.54 17.76C9.63 17.11 9.89 16.67 10.17 16.42C7.95 16.17 5.62 15.31 5.62 11.5C5.62 10.39 6 9.5 6.65 8.79C6.55 8.54 6.2 7.5 6.75 6.15C6.75 6.15 7.59 5.88 9.5 7.17C10.29 6.95 11.15 6.84 12 6.84C12.85 6.84 13.71 6.95 14.5 7.17C16.41 5.88 17.25 6.15 17.25 6.15C17.8 7.5 17.45 8.54 17.35 8.79C18 9.5 18.38 10.39 18.38 11.5C18.38 15.32 16.04 16.16 13.81 16.41C14.17 16.72 14.5 17.33 14.5 18.26C14.5 19.6 14.5 20.68 14.5 21C14.5 21.27 14.66 21.59 15.17 21.5C19.14 20.16 22 16.42 22 12C22 6.48 17.52 2 12 2Z"/>
+              </ui:SettingsExpanderItem.IconSource>
+            </ui:SettingsExpanderItem>
+
+            <ui:SettingsExpanderItem Content="社区版仓库" Description="github.com/Nepnisa/ObsMCLauncher-CE"
+                                     IsClickEnabled="True" Command="{Binding OpenCommunityRepoCommand}">
+              <ui:SettingsExpanderItem.IconSource>
+                <ui:PathIconSource Data="M12 2C6.48 2 2 6.48 2 12C2 16.42 4.87 20.17 8.84 21.5C9.34 21.58 9.5 21.27 9.5 21C9.5 20.77 9.5 20.14 9.5 19.31C6.73 19.91 6.14 17.97 6.14 17.97C5.68 16.81 5.03 16.5 5.03 16.5C4.12 15.88 5.1 15.9 5.1 15.9C6.1 15.97 6.63 16.93 6.63 16.93C7.5 18.45 8.97 18 9.54 17.76C9.63 17.11 9.89 16.67 10.17 16.42C7.95 16.17 5.62 15.31 5.62 11.5C5.62 10.39 6 9.5 6.65 8.79C6.55 8.54 6.2 7.5 6.75 6.15C6.75 6.15 7.59 5.88 9.5 7.17C10.29 6.95 11.15 6.84 12 6.84C12.85 6.84 13.71 6.95 14.5 7.17C16.41 5.88 17.25 6.15 17.25 6.15C17.8 7.5 17.45 8.54 17.35 8.79C18 9.5 18.38 10.39 18.38 11.5C18.38 15.32 16.04 16.16 13.81 16.41C14.17 16.72 14.5 17.33 14.5 18.26C14.5 19.6 14.5 20.68 14.5 21C14.5 21.27 14.66 21.59 15.17 21.5C19.14 20.16 22 16.42 22 12C22 6.48 17.52 2 12 2Z"/>
+              </ui:SettingsExpanderItem.IconSource>
+            </ui:SettingsExpanderItem>
+
+            <ui:SettingsExpanderItem Content="黑曜石论坛" Description="mcobs.cn"
+                                     IsClickEnabled="True" Command="{Binding OpenForumCommand}">
+              <ui:SettingsExpanderItem.IconSource>
+                <ui:PathIconSource Data="M20 2H4C2.9 2 2 2.9 2 4V22L6 18H20C21.1 18 22 17.1 22 16V4C22 2.9 21.1 2 20 2M20 16H6L4 18V4H20V16Z"/>
+              </ui:SettingsExpanderItem.IconSource>
+            </ui:SettingsExpanderItem>
+
+            <ui:SettingsExpanderItem Content="MciLm-link" Description="link.mcilm.top"
+                                     IsClickEnabled="True" Command="{Binding OpenMciLmLinkCommand}">
+              <ui:SettingsExpanderItem.IconSource>
+                <ui:PathIconSource Data="M10.59 13.41C11.21 14.03 12.05 14.42 13 14.42C13.95 14.42 14.79 14.03 15.41 13.41L19.41 9.41C20.63 8.19 20.63 6.19 19.41 4.97C18.19 3.75 16.19 3.75 14.97 4.97L13.41 6.54"/>
+              </ui:SettingsExpanderItem.IconSource>
+            </ui:SettingsExpanderItem>
+
+            <ui:SettingsExpanderItem Content="MCIM" Description="www.mcimirror.top"
+                                     IsClickEnabled="True" Command="{Binding OpenMCIMCommand}">
+              <ui:SettingsExpanderItem.IconSource>
+                <ui:PathIconSource Data="M12 2C6.48 2 2 6.48 2 12S6.48 22 12 22 22 17.52 22 12 17.52 2 12 2M12 20C7.59 20 4 16.41 4 12S7.59 4 12 4 20 7.59 20 12 16.41 20 12 20M11 7H13V13H11V7M11 15H13V17H11V15Z"/>
+              </ui:SettingsExpanderItem.IconSource>
+            </ui:SettingsExpanderItem>
+          </ui:SettingsExpander>
+
+          <ui:SettingsExpander Header="特别感谢" IsExpanded="False">
+            <ui:SettingsExpanderItem Content="黑曜石启动器官方版" Description="提供社区版基本框架">
+              <ui:SettingsExpanderItem.IconSource>
+                <ui:PathIconSource Data="M12 2C6.48 2 2 6.48 2 12S6.48 22 12 22 22 17.52 22 12 17.52 2 12 2M13 17H11V15H13V17M13 13H11V7H13V13Z"/>
+              </ui:SettingsExpanderItem.IconSource>
+            </ui:SettingsExpanderItem>
+
+            <ui:SettingsExpanderItem Content="bangbang93" Description="BMCLAPI 镜像源服务">
+              <ui:SettingsExpanderItem.IconSource>
+                <ui:PathIconSource Data="M12 21.35L10.55 20.03C5.4 15.36 2 12.27 2 8.5C2 5.41 4.42 3 7.5 3C9.24 3 10.91 3.81 12 5.08C13.09 3.81 14.76 3 16.5 3C19.58 3 22 5.41 22 8.5C22 12.27 18.6 15.36 13.45 20.03L12 21.35Z"/>
+              </ui:SettingsExpanderItem.IconSource>
+            </ui:SettingsExpanderItem>
+
+            <ui:SettingsExpanderItem Content="路过的京局DF7C" Description="软件图标设计">
+              <ui:SettingsExpanderItem.IconSource>
+                <ui:PathIconSource Data="M12 2C6.49 2 2 6.49 2 12S6.49 22 12 22S22 17.51 22 12S17.51 2 12 2M12 20C7.59 20 4 16.41 4 12S7.59 4 12 4S20 7.59 20 12S16.41 20 12 20M12.5 7V12.25L17 14.92L16.25 16.15L11 13V7H12.5Z"/>
+              </ui:SettingsExpanderItem.IconSource>
+            </ui:SettingsExpanderItem>
+
+            <ui:SettingsExpanderItem Content="MciLm-link" Description="多人联机/内网穿透服务">
+              <ui:SettingsExpanderItem.IconSource>
+                <ui:PathIconSource Data="M10.59 13.41C11.21 14.03 12.05 14.42 13 14.42C13.95 14.42 14.79 14.03 15.41 13.41L19.41 9.41C20.63 8.19 20.63 6.19 19.41 4.97C18.19 3.75 16.19 3.75 14.97 4.97L13.41 6.54"/>
+              </ui:SettingsExpanderItem.IconSource>
+            </ui:SettingsExpanderItem>
+
+            <ui:SettingsExpanderItem Content="authlib-injector" Description="Yggdrasil 外置登录支持">
+              <ui:SettingsExpanderItem.IconSource>
+                <ui:PathIconSource Data="M12 1L3 5V11C3 16.5 6.8 21.7 12 23C17.2 21.7 21 16.5 21 11V5L12 1M12 11H19C18.5 15.5 15.7 19.6 12 20.9V11H5V6.3L12 3.2V11Z"/>
+              </ui:SettingsExpanderItem.IconSource>
+            </ui:SettingsExpanderItem>
+
+            <ui:SettingsExpanderItem Content="MCIM" Description="社区资源镜像源服务 (https://www.mcimirror.top/)">
+              <ui:SettingsExpanderItem.IconSource>
+                <ui:PathIconSource Data="M12 2C6.48 2 2 6.48 2 12S6.48 22 12 22 22 17.52 22 12 17.52 2 12 2M12 20C7.59 20 4 16.41 4 12S7.59 4 12 4 20 7.59 20 12 16.41 20 12 20M11 7H13V13H11V7M11 15H13V17H11V15Z"/>
+              </ui:SettingsExpanderItem.IconSource>
+            </ui:SettingsExpanderItem>
+          </ui:SettingsExpander>
+
+        </StackPanel>
+      </ScrollViewer>
+
+      <!-- 插件 Tab：社区版禁用 -->
+      <Grid DataContext="{Binding Plugins}">
+        <Grid.IsVisible>
+          <MultiBinding Converter="{x:Static converters:TabContentTypeConverter.Instance}" ConverterParameter="PluginsViewModel">
+            <Binding Path="#MoreViewControl.DataContext.Tabs"/>
+            <Binding Path="#MoreViewControl.DataContext.SelectedTabIndex"/>
+          </MultiBinding>
+        </Grid.IsVisible>
+        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="16">
+          <TextBlock Text="🔌" FontSize="48" />
+          <TextBlock Text="若想要使用插件，请前往官方版" FontSize="16" FontWeight="Medium" />
+          <Button Content="打开官方版 GitHub" Command="{Binding OpenOfficialRepoCommand}" />
+        </StackPanel>
+      </Grid>
+
+      <Grid DataContext="{Binding Screenshots}">
+        <Grid.IsVisible>
+          <MultiBinding Converter="{x:Static converters:TabContentTypeConverter.Instance}" ConverterParameter="ScreenshotsViewModel">
+            <Binding Path="#MoreViewControl.DataContext.Tabs"/>
+            <Binding Path="#MoreViewControl.DataContext.SelectedTabIndex"/>
+          </MultiBinding>
+        </Grid.IsVisible>
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+          <Grid>
+            <Grid.RowDefinitions>
+              <RowDefinition Height="Auto"/>
+              <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Background="{DynamicResource SurfaceBrush}"
+                CornerRadius="12" Padding="16" Margin="24,24,24,12"
+                BorderThickness="1" BorderBrush="{DynamicResource BorderBrush}">
+          <Grid ColumnDefinitions="*,Auto,Auto,Auto">
+            <TextBox Grid.Column="0" Text="{Binding SearchText}"
+                     Watermark="搜索截图..." Margin="0,0,12,0"/>
+            <ComboBox Grid.Column="1" ItemsSource="{Binding Versions}"
+                      SelectedItem="{Binding SelectedVersion}"
+                      Width="150" Margin="0,0,12,0"/>
+            <CalendarDatePicker Grid.Column="2" SelectedDate="{Binding StartDate}"
+                               Width="140" Margin="0,0,8,0"/>
+            <CalendarDatePicker Grid.Column="3" SelectedDate="{Binding EndDate}"
+                               Width="140" Margin="0,0,12,0"/>
+          </Grid>
+        </Border>
+
+        <ListBox Grid.Row="1" Margin="24,0,24,24"
+                 ItemsSource="{Binding Screenshots}"
+                 Background="Transparent"
+                 BorderThickness="0"
+                 ScrollViewer.ScrollChanged="OnScreenshotsScrollChanged">
+          <ListBox.ItemContainerTheme>
+            <ControlTheme TargetType="ListBoxItem">
+              <Setter Property="Padding" Value="0"/>
+              <Setter Property="Background" Value="Transparent"/>
+              <Setter Property="Focusable" Value="False"/>
+              <Setter Property="HorizontalContentAlignment" Value="Left"/>
+              <Style Selector="^:pointerover">
+                <Setter Property="Background" Value="Transparent"/>
+              </Style>
+              <Style Selector="^:selected">
+                <Setter Property="Background" Value="Transparent"/>
+              </Style>
+            </ControlTheme>
+          </ListBox.ItemContainerTheme>
+          <ListBox.ItemsPanel>
+            <ItemsPanelTemplate>
+              <WrapPanel Orientation="Horizontal"/>
+            </ItemsPanelTemplate>
+          </ListBox.ItemsPanel>
+          <ListBox.ItemTemplate>
+            <DataTemplate>
+              <Border Background="{DynamicResource SurfaceBrush}"
+                      CornerRadius="12" Padding="8" Margin="0,0,14,14" Width="200"
+                      BorderThickness="1" BorderBrush="{DynamicResource BorderBrush}">
+                <Grid RowDefinitions="150,Auto,Auto,Auto">
+                  <Border Grid.Row="0" CornerRadius="8" Background="{DynamicResource SurfaceElevatedBrush}" Margin="0,0,0,8">
+                    <Image Source="{Binding FullPath, Converter={x:Static converters:FilePathToBitmapConverter.Instance}}" Stretch="UniformToFill"/>
+                  </Border>
+                  <TextBlock Grid.Row="1" Text="{Binding FileName}" FontSize="13"
+                             FontWeight="Medium" TextTrimming="CharacterEllipsis" Margin="0,0,0,4"/>
+                  <StackPanel Grid.Row="2" Margin="0,0,0,8">
+                    <TextBlock FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,2">
+                      <Run Text="大小: "/><Run Text="{Binding FormattedSize}"/>
+                    </TextBlock>
+                    <TextBlock FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}">
+                      <Run Text="创建: "/><Run Text="{Binding FormattedCreatedTime}"/>
+                    </TextBlock>
+                  </StackPanel>
+                  <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="4">
+                    <Button Content="查看" Classes="ghost" Padding="6,4"
+                            Command="{Binding $parent[ListBox].((vm:ScreenshotsViewModel)DataContext).ViewScreenshotCommand}"
+                            CommandParameter="{Binding}"/>
+                    <Button Content="导出" Classes="ghost" Padding="6,4"
+                            Command="{Binding $parent[ListBox].((vm:ScreenshotsViewModel)DataContext).ExportScreenshotCommand}"
+                            CommandParameter="{Binding}"/>
+                    <Button Content="删除" Classes="danger" Padding="6,4"
+                            Command="{Binding $parent[ListBox].((vm:ScreenshotsViewModel)DataContext).DeleteScreenshotCommand}"
+                            CommandParameter="{Binding}"/>
+                  </StackPanel>
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+
+        <StackPanel Grid.Row="1" Classes="empty-state"
+                    IsVisible="{Binding IsEmpty}">
+          <Path Data="M8.5 13.5L2.5 15.5L4.5 9.5L15.5 3.5L20.5 8.5L14.5 19.5L8.5 13.5ZM12 16L13.5 14.5L9.5 10.5L8 12L12 16ZM14.5 4.5L19.5 9.5L20.5 8.5L15.5 3.5L14.5 4.5Z" Width="64" Height="64" Stretch="Uniform" Fill="{DynamicResource TextTertiaryBrush}" HorizontalAlignment="Center" Margin="0,0,0,16"/>
+          <TextBlock Text="暂无截图" FontSize="18" FontWeight="SemiBold"
+                     HorizontalAlignment="Center" Margin="0,0,0,8"
+                     Foreground="{DynamicResource TextSecondaryBrush}"/>
+          <TextBlock Text="您还没有任何游戏截图" FontSize="13"
+                     HorizontalAlignment="Center"
+                     Foreground="{DynamicResource TextTertiaryBrush}"/>
+        </StackPanel>
+          </Grid>
+        </ScrollViewer>
+      </Grid>
+
+      <Grid DataContext="{Binding Servers}">
+        <Grid.IsVisible>
+          <MultiBinding Converter="{x:Static converters:TabContentTypeConverter.Instance}" ConverterParameter="ServersViewModel">
+            <Binding Path="#MoreViewControl.DataContext.Tabs"/>
+            <Binding Path="#MoreViewControl.DataContext.SelectedTabIndex"/>
+          </MultiBinding>
+        </Grid.IsVisible>
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+          <Grid>
+            <Grid.RowDefinitions>
+              <RowDefinition Height="Auto"/>
+              <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Background="{DynamicResource SurfaceBrush}"
+                CornerRadius="12" Padding="20" Margin="24,24,24,16"
+                BorderThickness="1" BorderBrush="{DynamicResource BorderBrush}">
+          <StackPanel Spacing="12">
+            <TextBox Text="{Binding SearchText}"
+                     Watermark="搜索服务器（名称、地址、MOTD、版本）..."
+                     FontSize="14" Padding="12,10"/>
+            <Grid ColumnDefinitions="Auto,*,Auto">
+              <Button Grid.Column="0" Content="刷新状态" Classes="ghost"
+                      Command="{Binding RefreshStatusCommand}"
+                      IsEnabled="{Binding !IsRefreshing}"
+                      Padding="16,8" FontSize="13"/>
+              <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10">
+                <Button Content="导入" Classes="ghost"
+                        Command="{Binding ImportServersCommand}"
+                        Padding="16,8" FontSize="13"
+                        ToolTip.Tip="从JSON文件导入服务器列表"/>
+                <Button Content="导出" Classes="ghost"
+                        Command="{Binding ExportServersCommand}"
+                        Padding="16,8" FontSize="13"
+                        ToolTip.Tip="导出服务器列表到JSON文件"/>
+                <Button Content="添加服务器" Classes="accent"
+                        Command="{Binding AddServerCommand}"
+                        Padding="20,8" FontSize="14"/>
+              </StackPanel>
+            </Grid>
+          </StackPanel>
+        </Border>
+
+        <Grid Grid.Row="1" Margin="24,0,24,0">
+          <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+          </Grid.RowDefinitions>
+          <ListBox Grid.Row="0" ItemsSource="{Binding Servers}"
+                   Background="Transparent" BorderThickness="0"
+                   ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+            <ListBox.ItemContainerTheme>
+              <ControlTheme TargetType="ListBoxItem">
+                <Setter Property="Padding" Value="0"/>
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="Focusable" Value="False"/>
+                <Setter Property="HorizontalContentAlignment" Value="Left"/>
+                <Style Selector="^:pointerover">
+                  <Setter Property="Background" Value="Transparent"/>
+                </Style>
+                <Style Selector="^:selected">
+                  <Setter Property="Background" Value="Transparent"/>
+                </Style>
+              </ControlTheme>
+            </ListBox.ItemContainerTheme>
+            <ListBox.ItemsPanel>
+              <ItemsPanelTemplate>
+                <WrapPanel Orientation="Horizontal"/>
+              </ItemsPanelTemplate>
+            </ListBox.ItemsPanel>
+            <ListBox.ItemTemplate>
+              <DataTemplate>
+                <Border Background="{DynamicResource SurfaceBrush}"
+                        CornerRadius="14" Padding="22" Margin="0,0,16,16"
+                        Width="340" MinHeight="230"
+                        BorderThickness="1" BorderBrush="{DynamicResource BorderBrush}">
+                  <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto">
+                    <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,10">
+                      <Border Grid.Column="0" Width="40" Height="40" CornerRadius="6"
+                              ClipToBounds="True" Margin="0,0,10,0"
+                              Background="{DynamicResource BorderBrush}">
+                        <Image Source="{Binding IconPath, Converter={x:Static converters:FilePathToBitmapConverter.Instance}}"
+                               Stretch="UniformToFill"/>
+                      </Border>
+                      <TextBlock Grid.Column="1" Text="{Binding Name}"
+                                 FontSize="17" FontWeight="Medium"
+                                 TextTrimming="CharacterEllipsis"
+                                 VerticalAlignment="Center"/>
+                      <Border Grid.Column="2" CornerRadius="10" Padding="8,3"
+                              VerticalAlignment="Center" Opacity="1">
+                        <Border.Background>
+                          <SolidColorBrush Color="{Binding IsOnline, Converter={x:Static converters:BoolToColorConverter.Instance}}"
+                                           Opacity="0.15"/>
+                        </Border.Background>
+                        <TextBlock Text="{Binding StatusText}" FontSize="12" FontWeight="Medium">
+                          <TextBlock.Foreground>
+                            <SolidColorBrush Color="{Binding IsOnline, Converter={x:Static converters:BoolToColorConverter.Instance}}"/>
+                          </TextBlock.Foreground>
+                        </TextBlock>
+                      </Border>
+                    </Grid>
+                    <TextBlock Grid.Row="1" Text="{Binding FullAddress}" FontSize="13"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               TextTrimming="CharacterEllipsis" Margin="0,0,0,6"/>
+                    <TextBlock Grid.Row="2" Text="{Binding FormattedVersion, StringFormat='版本: {0}'}"
+                                FontSize="12" Foreground="{DynamicResource TextTertiaryBrush}"
+                                Margin="0,0,0,8"
+                                TextTrimming="CharacterEllipsis"/>
+                    <StackPanel Grid.Row="3" Margin="0,0,0,12" Spacing="3">
+                      <Grid ColumnDefinitions="Auto,*">
+                        <TextBlock Grid.Column="0" Text="延迟" FontSize="12"
+                                   Foreground="{DynamicResource TextTertiaryBrush}"
+                                   Width="36"/>
+                        <ProgressBar Grid.Column="1" IsIndeterminate="True" Height="2" Width="64"
+                                     VerticalAlignment="Center" Margin="4,0,0,0"
+                                     IsVisible="{Binding $parent[ListBox].((vm:ServersViewModel)DataContext).IsRefreshing}"/>
+                        <StackPanel Grid.Column="1" Margin="4,0,0,0"
+                                    IsVisible="{Binding $parent[ListBox].((vm:ServersViewModel)DataContext).IsRefreshing, Converter={x:Static converters:NotConverter.Instance}}">
+                          <TextBlock FontSize="12" FontWeight="Medium" IsVisible="{Binding IsOnline}">
+                            <TextBlock.Foreground>
+                              <SolidColorBrush Color="{Binding PingLevel, Converter={x:Static converters:PingLevelToColorConverter.Instance}}"/>
+                            </TextBlock.Foreground>
+                            <Run Text="{Binding FormattedPing}"/>
+                          </TextBlock>
+                          <TextBlock Text="--" FontSize="12" Foreground="{DynamicResource TextTertiaryBrush}"
+                                     IsVisible="{Binding IsOnline, Converter={x:Static converters:NotConverter.Instance}}"/>
+                        </StackPanel>
+                      </Grid>
+                      <Grid ColumnDefinitions="Auto,*">
+                        <TextBlock Grid.Column="0" Text="玩家" FontSize="12"
+                                   Foreground="{DynamicResource TextTertiaryBrush}"
+                                   Width="36"/>
+                        <TextBlock Grid.Column="1" FontSize="12" FontWeight="Medium"
+                                   Margin="4,0,0,0"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   Text="{Binding FormattedPlayers}"/>
+                      </Grid>
+                      <TextBlock FontSize="12"
+                                 Foreground="{DynamicResource TextTertiaryBrush}"
+                                 Text="{Binding Motd}"
+                                 TextTrimming="CharacterEllipsis"
+                                 MaxLines="2" TextWrapping="Wrap"/>
+                    </StackPanel>
+                    <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                      <Button Content="连接" Classes="accent"
+                              Padding="16,7" FontSize="13"
+                              Command="{Binding $parent[ListBox].((vm:ServersViewModel)DataContext).ConnectServerCommand}"
+                              CommandParameter="{Binding}"
+                              IsEnabled="{Binding $parent[ListBox].((vm:ServersViewModel)DataContext).IsConnecting, Converter={x:Static converters:NotConverter.Instance}}"/>
+                      <Button Content="编辑" Classes="ghost"
+                              Padding="14,7" FontSize="13"
+                              Command="{Binding $parent[ListBox].((vm:ServersViewModel)DataContext).EditServerCommand}"
+                              CommandParameter="{Binding}"/>
+                      <Button Content="删除" Classes="danger"
+                              Padding="14,7" FontSize="13"
+                              Command="{Binding $parent[ListBox].((vm:ServersViewModel)DataContext).DeleteServerCommand}"
+                              CommandParameter="{Binding}"/>
+                    </StackPanel>
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+
+          <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="12"
+                      Margin="0,12,0,28">
+            <Button Content="上一页" Classes="ghost" Padding="16,8" FontSize="13"
+                    Command="{Binding PreviousPageCommand}"
+                    IsEnabled="{Binding !IsLoading}"/>
+            <Border Background="{DynamicResource SurfaceBrush}"
+                     CornerRadius="8" Padding="16,6"
+                     BorderThickness="1" BorderBrush="{DynamicResource BorderBrush}">
+               <TextBlock VerticalAlignment="Center" FontSize="14" FontWeight="Medium"
+                          Foreground="{DynamicResource TextSecondaryBrush}"
+                          Text="{Binding CurrentPage}"/>
+             </Border>
+             <TextBlock VerticalAlignment="Center" FontSize="14" FontWeight="Medium"
+                         Foreground="{DynamicResource TextTertiaryBrush}">
+                <Run Text="/ "/>
+                <Run Text="{Binding TotalPages}"/>
+                <Run Text=" 页"/>
+              </TextBlock>
+            <Button Content="下一页" Classes="ghost" Padding="16,8" FontSize="13"
+                    Command="{Binding NextPageCommand}"
+                    IsEnabled="{Binding !IsLoading}"/>
+          </StackPanel>
+        </Grid>
+
+        <StackPanel Grid.Row="1" Classes="empty-state"
+                    IsVisible="{Binding IsEmpty}">
+          <Path Data="M4 1C2.89 1 2 1.89 2 3V7C2 8.11 2.89 9 4 9H1V11H13V9H10C11.11 9 12 8.11 12 7V3C12 1.89 11.11 1 10 1H4M4 3H10V7H4V3M14 13C12.89 13 12 13.89 12 15V19C12 20.11 12.89 21 14 21H10V23H22V21H18C19.11 21 20 20.11 20 19V15C20 13.89 19.11 13 18 13H14M14 15H18V19H14V15Z"
+                Width="72" Height="72" Stretch="Uniform"
+                Fill="{DynamicResource TextTertiaryBrush}"
+                HorizontalAlignment="Center" Margin="0,0,0,20" Opacity="0.6"/>
+          <TextBlock Text="暂无服务器" FontSize="20" FontWeight="Medium"
+                     HorizontalAlignment="Center" Margin="0,0,0,10"
+                     Foreground="{DynamicResource TextSecondaryBrush}"/>
+          <TextBlock Text="点击「添加服务器」按钮添加您喜欢的服务器" FontSize="14"
+                     HorizontalAlignment="Center"
+                     Foreground="{DynamicResource TextTertiaryBrush}"/>
+        </StackPanel>
+
+        <Border Grid.Row="0" Grid.RowSpan="2"
+                Background="#80000000"
+                IsVisible="{Binding IsAddServerDialogOpen}"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch">
+          <Border Background="{DynamicResource SurfaceElevatedBrush}"
+                  CornerRadius="14" Padding="28"
+                  Width="480" HorizontalAlignment="Center" VerticalAlignment="Center"
+                  BorderThickness="1" BorderBrush="{DynamicResource BorderBrush}">
+            <StackPanel Spacing="20">
+              <TextBlock Text="添加服务器" FontSize="20" FontWeight="SemiBold"/>
+              
+              <StackPanel Spacing="14">
+                <StackPanel Spacing="6">
+                  <TextBlock Text="服务器名称" FontSize="13" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                  <TextBox Text="{Binding AddServerDialog.Name}" Watermark="输入服务器名称"
+                           FontSize="14" Padding="12,8"/>
+                </StackPanel>
+                
+                <StackPanel Spacing="6">
+                  <TextBlock Text="服务器地址" FontSize="13" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                  <TextBox Text="{Binding AddServerDialog.Address}" Watermark="例如: mc.example.com"
+                           FontSize="14" Padding="12,8"/>
+                </StackPanel>
+                
+                <Grid ColumnDefinitions="*,16,*">
+                  <StackPanel Grid.Column="0" Spacing="6">
+                    <TextBlock Text="端口" FontSize="13" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                    <NumericUpDown Value="{Binding AddServerDialog.Port}" Minimum="1" Maximum="65535"/>
+                  </StackPanel>
+                  <StackPanel Grid.Column="2" Spacing="6">
+                    <TextBlock Text="备注" FontSize="13" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                    <TextBox Text="{Binding AddServerDialog.Notes}" Watermark="可选"
+                             FontSize="14" Padding="12,8"/>
+                  </StackPanel>
+                </Grid>
+              </StackPanel>
+              
+              <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="12">
+                <Button Content="取消" Command="{Binding CancelAddServerCommand}"
+                        Padding="20,8" FontSize="14"/>
+                <Button Content="确定" Classes="accent" Command="{Binding ConfirmAddServerCommand}"
+                        Padding="20,8" FontSize="14"/>
+              </StackPanel>
+            </StackPanel>
+          </Border>
+        </Border>
+
+        <Border Grid.Row="0" Grid.RowSpan="2"
+                Background="#80000000"
+                IsVisible="{Binding IsEditServerDialogOpen}"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch">
+          <Border Background="{DynamicResource SurfaceElevatedBrush}"
+                  CornerRadius="14" Padding="28"
+                  Width="480" HorizontalAlignment="Center" VerticalAlignment="Center"
+                  BorderThickness="1" BorderBrush="{DynamicResource BorderBrush}">
+            <StackPanel Spacing="20">
+              <TextBlock Text="编辑服务器" FontSize="20" FontWeight="SemiBold"/>
+              
+              <StackPanel Spacing="14">
+                <StackPanel Spacing="6">
+                  <TextBlock Text="服务器名称" FontSize="13" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                  <TextBox Text="{Binding EditServerDialog.Name}"
+                           FontSize="14" Padding="12,8"/>
+                </StackPanel>
+                
+                <StackPanel Spacing="6">
+                  <TextBlock Text="服务器地址" FontSize="13" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                  <TextBox Text="{Binding EditServerDialog.Address}"
+                           FontSize="14" Padding="12,8"/>
+                </StackPanel>
+                
+                <Grid ColumnDefinitions="*,16,*">
+                  <StackPanel Grid.Column="0" Spacing="6">
+                    <TextBlock Text="端口" FontSize="13" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                    <NumericUpDown Value="{Binding EditServerDialog.Port}" Minimum="1" Maximum="65535"/>
+                  </StackPanel>
+                  <StackPanel Grid.Column="2" Spacing="6">
+                    <TextBlock Text="备注" FontSize="13" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                    <TextBox Text="{Binding EditServerDialog.Notes}" Watermark="可选"
+                             FontSize="14" Padding="12,8"/>
+                  </StackPanel>
+                </Grid>
+              </StackPanel>
+              
+              <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="12">
+                <Button Content="取消" Command="{Binding CancelEditServerCommand}"
+                        Padding="20,8" FontSize="14"/>
+                <Button Content="保存" Classes="accent" Command="{Binding ConfirmEditServerCommand}"
+                        Padding="20,8" FontSize="14"/>
+              </StackPanel>
+            </StackPanel>
+          </Border>
+        </Border>
+          </Grid>
+        </ScrollViewer>
+      </Grid>
+
+      <Panel>
+        <Panel.IsVisible>
+          <MultiBinding Converter="{x:Static converters:TabContentTypeConverter.Instance}" ConverterParameter="PluginTabViewModel">
+            <Binding Path="#MoreViewControl.DataContext.Tabs"/>
+            <Binding Path="#MoreViewControl.DataContext.SelectedTabIndex"/>
+          </MultiBinding>
+        </Panel.IsVisible>
+
+        <!-- 自定义UI内容 -->
+        <ContentControl>
+          <ContentControl.Content>
+            <MultiBinding Converter="{x:Static converters:PluginTabCustomContentConverter.Instance}">
+              <Binding Path="#MoreViewControl.DataContext.Tabs"/>
+              <Binding Path="#MoreViewControl.DataContext.SelectedTabIndex"/>
+            </MultiBinding>
+          </ContentControl.Content>
+          <ContentControl.IsVisible>
+            <MultiBinding Converter="{x:Static converters:PluginTabCustomContentVisibilityConverter.Instance}">
+              <Binding Path="#MoreViewControl.DataContext.Tabs"/>
+              <Binding Path="#MoreViewControl.DataContext.SelectedTabIndex"/>
+            </MultiBinding>
+          </ContentControl.IsVisible>
+        </ContentControl>
+
+        <!-- 默认文本内容 -->
+        <ScrollViewer VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled"
+                      Padding="24">
+          <ScrollViewer.IsVisible>
+            <MultiBinding Converter="{x:Static converters:PluginTabDefaultContentVisibilityConverter.Instance}">
+              <Binding Path="#MoreViewControl.DataContext.Tabs"/>
+              <Binding Path="#MoreViewControl.DataContext.SelectedTabIndex"/>
+            </MultiBinding>
+          </ScrollViewer.IsVisible>
+          <ContentPresenter>
+            <ContentPresenter.Content>
+              <MultiBinding Converter="{x:Static converters:SelectedTabContentConverter.Instance}">
+                <Binding Path="#MoreViewControl.DataContext.Tabs"/>
+                <Binding Path="#MoreViewControl.DataContext.SelectedTabIndex"/>
+              </MultiBinding>
+            </ContentPresenter.Content>
+          </ContentPresenter>
+        </ScrollViewer>
+      </Panel>
+    </Grid>
+  </Grid>
+</UserControl>
