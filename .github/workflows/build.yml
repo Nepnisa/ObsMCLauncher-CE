@@ -2,116 +2,49 @@ name: Build ObsMCLauncher
 
 on:
   push:
-    branches: [ "main", "master" ]
-  pull_request:
-    branches: [ "main", "master" ]
+    branches: [ main, master ]
   workflow_dispatch:
 
 jobs:
   build:
-    if: "!contains(github.event.head_commit.message, '[CI skip]') && !contains(github.event.head_commit.message, '[ci skip]')"
-
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
-        rid:
-          - win-x86
-          - win-x64
-          - win-arm64
-          - linux-x64
-          - linux-arm64
-          - osx-x64
-          - osx-arm64
-        exclude:
+        include:
           - os: windows-latest
-            rid: linux-x64
-          - os: windows-latest
-            rid: linux-arm64
-          - os: windows-latest
-            rid: osx-x64
-          - os: windows-latest
-            rid: osx-arm64
-          - os: ubuntu-latest
-            rid: win-x86
-          - os: ubuntu-latest
             rid: win-x64
-          - os: ubuntu-latest
+          - os: windows-latest
+            rid: win-x86
+          - os: windows-latest
             rid: win-arm64
           - os: ubuntu-latest
-            rid: osx-x64
-          - os: ubuntu-latest
-            rid: osx-arm64
-          - os: macos-latest
-            rid: win-x86
-          - os: macos-latest
-            rid: win-x64
-          - os: macos-latest
-            rid: win-arm64
-          - os: macos-latest
             rid: linux-x64
-          - os: macos-latest
+          - os: ubuntu-latest
             rid: linux-arm64
-
-    runs-on: ${{ matrix.os }}
-
-    env:
-      Project_Path: ObsMCLauncher.Desktop/ObsMCLauncher.Desktop.csproj
+          - os: macos-latest
+            rid: osx-x64
+          - os: macos-latest
+            rid: osx-arm64
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
+    - uses: actions/checkout@v4
 
-    - name: Install .NET Core
+    - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 8.0.x
 
-    - name: Cache NuGet packages
-      uses: actions/cache@v4
-      with:
-        path: ~/.nuget/packages
-        key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
-        restore-keys: |
-          ${{ runner.os }}-nuget-
+    - name: Restore
+      run: dotnet restore ObsMCLauncher.Desktop/ObsMCLauncher.Desktop.csproj
 
-    - name: Restore dependencies
-      run: dotnet restore ${{ env.Project_Path }}
+    - name: Build
+      run: dotnet build ObsMCLauncher.Desktop/ObsMCLauncher.Desktop.csproj -c Release --no-restore
 
-    - name: Build application
-      run: dotnet build ${{ env.Project_Path }} -c Release --no-restore
+    - name: Publish
+      run: dotnet publish ObsMCLauncher.Desktop/ObsMCLauncher.Desktop.csproj -c Release -r ${{ matrix.rid }} --self-contained true -p:PublishSingleFile=true -o ./publish
 
-    - name: Get version info
-      id: version
-      shell: bash
-      run: |
-        date=$(date +%Y%m%d)
-        short_sha="${GITHUB_SHA:0:7}"
-        version="v1.0.0-$date-$short_sha"
-        echo "version=$version" >> $GITHUB_OUTPUT
-        echo "当前版本: $version"
-
-    - name: Publish application
-      run: |
-        dotnet publish ${{ env.Project_Path }} -c Release -r ${{ matrix.rid }} --self-contained false -p:DebugType=none -p:DebugSymbols=false -o ./publish/${{ matrix.rid }}
-
-    - name: Set executable permission (Linux/macOS)
-      if: runner.os != 'Windows'
-      run: |
-        if [ -f "./publish/${{ matrix.rid }}/ObsMCLauncher.Desktop" ]; then
-          chmod +x "./publish/${{ matrix.rid }}/ObsMCLauncher.Desktop"
-        fi
-
-    - name: Verify output
-      shell: bash
-      run: |
-        echo "发布目录内容:"
-        ls -la "./publish/${{ matrix.rid }}/"
-
-    - name: Upload build artifacts
+    - name: Upload
       uses: actions/upload-artifact@v4
       with:
-        name: ObsMCLauncher-${{ steps.version.outputs.version }}-${{ matrix.rid }}
-        path: ./publish/${{ matrix.rid }}/*
-        retention-days: 90
+        name: ${{ matrix.rid == 'win-x64' && 'ObsMCLauncher-CE-Windows-x64' || matrix.rid == 'win-x86' && 'ObsMCLauncher-CE-Windows-x86' || matrix.rid == 'win-arm64' && 'ObsMCLauncher-CE-Windows-ARM64' || matrix.rid == 'linux-x64' && 'ObsMCLauncher-CE-Linux-x64' || matrix.rid == 'linux-arm64' && 'ObsMCLauncher-CE-Linux-ARM64' || matrix.rid == 'osx-x64' && 'ObsMCLauncher-CE-macOS-x64' || matrix.rid == 'osx-arm64' && 'ObsMCLauncher-CE-macOS-ARM64' }}
+        path: ./publish
