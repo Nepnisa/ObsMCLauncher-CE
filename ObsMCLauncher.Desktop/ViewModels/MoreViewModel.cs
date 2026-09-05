@@ -30,6 +30,8 @@ public partial class MoreViewModel : ViewModelBase
     public PluginsViewModel Plugins { get; }
     public ScreenshotsViewModel Screenshots { get; }
     public ServersViewModel Servers { get; }
+    public IRelayCommand OpenOfficialRepoCommand => About.OpenOfficialRepoCommand;
+    public IRelayCommand OpenCommunityRepoCommand => About.OpenCommunityRepoCommand;
 
     public MoreViewModel(NotificationService notificationService, PluginLoader pluginLoader, DialogService dialogService)
     {

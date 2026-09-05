@@ -235,7 +235,7 @@
         <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="16">
           <TextBlock Text="🔌" FontSize="48" />
           <TextBlock Text="若想要使用插件，请前往官方版" FontSize="16" FontWeight="Medium" />
-          <Button Content="打开官方版 GitHub" Command="{Binding DataContext.OpenOfficialRepoCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+          <Button Content="打开官方版 GitHub" Command="{Binding ElementName=MoreViewControl, Path=DataContext.OpenOfficialRepoCommand}" />
         </StackPanel>
       </Grid>
 
